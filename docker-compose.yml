@@ -1,0 +1,17 @@
+name: kanjikun
+
+services:
+  db:
+    image: postgres:15
+    container_name: drinking_event_db
+    environment:
+      POSTGRES_USER: dev
+      POSTGRES_PASSWORD: dev
+      POSTGRES_DB: drinking_event
+    ports:
+      - "5432:5432"
+    volumes:
+      - drinking_event_db_data:/var/lib/postgresql/data
+
+volumes:
+  drinking_event_db_data:
