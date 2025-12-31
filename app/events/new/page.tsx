@@ -144,12 +144,12 @@ export default function NewEventPage() {
 
   return (
     <main className="min-h-screen bg-[#f6f1ea] text-[#1f1b16]">
-      <div className="mx-auto w-full max-w-4xl px-6 py-16">
+      <div className="mx-auto w-full max-w-4xl px-4 py-12 sm:px-6 sm:py-16">
         <header className="mb-10">
           <p className="text-xs uppercase tracking-[0.3em] text-[#a1714f]">
             イベント準備
           </p>
-          <h1 className="mt-3 text-3xl font-semibold">イベント作成</h1>
+          <h1 className="mt-3 text-2xl font-semibold sm:text-3xl">イベント作成</h1>
           <p className="mt-2 text-sm text-[#6b5a4b]">
             候補日を複数登録して、参加者にURLを共有します。
           </p>
@@ -157,7 +157,7 @@ export default function NewEventPage() {
 
         <form
           onSubmit={handleSubmit}
-          className="space-y-6 rounded-3xl border border-[#e6d6c9] bg-white/80 p-8 shadow-[0_18px_40px_rgba(31,27,22,0.12)]"
+          className="space-y-6 rounded-3xl border border-[#e6d6c9] bg-white/80 p-6 shadow-[0_18px_40px_rgba(31,27,22,0.12)] sm:p-8"
         >
           <div>
             <label className="text-sm font-medium">イベント名</label>
@@ -179,7 +179,7 @@ export default function NewEventPage() {
           </div>
 
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <h2 className="text-sm font-semibold">候補日</h2>
               <p className="text-xs text-[#6b5a4b]">
                 カレンダーから日付を追加します

@@ -33,13 +33,13 @@ export default function LoginPage() {
 
   return (
     <main className="min-h-screen bg-[#f6f1ea] text-[#1f1b16]">
-      <div className="mx-auto flex min-h-screen w-full max-w-4xl items-center px-6 py-16">
-        <div className="w-full rounded-3xl bg-white/90 p-10 shadow-[0_24px_60px_rgba(31,27,22,0.12)]">
+      <div className="mx-auto flex min-h-screen w-full max-w-4xl items-center px-4 py-12 sm:px-6 sm:py-16">
+        <div className="w-full rounded-3xl bg-white/90 p-6 shadow-[0_24px_60px_rgba(31,27,22,0.12)] sm:p-10">
           <div className="mb-8">
             <p className="text-sm uppercase tracking-[0.2em] text-[#a1714f]">
               幹事くん
             </p>
-            <h1 className="mt-3 text-3xl font-semibold">
+            <h1 className="mt-3 text-2xl font-semibold sm:text-3xl">
               幹事ログイン
             </h1>
             <p className="mt-2 text-sm text-[#6b5a4b]">
