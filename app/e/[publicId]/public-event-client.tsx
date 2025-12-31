@@ -71,6 +71,21 @@ function formatPaymentStatus(status: Payment["status"]) {
   }
 }
 
+function formatDateHeaderParts(value: string) {
+  const date = new Date(value);
+  return {
+    date: date.toLocaleDateString("ja-JP", {
+      month: "numeric",
+      day: "numeric",
+      weekday: "short",
+    }),
+    time: date.toLocaleTimeString("ja-JP", {
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
+  };
+}
+
 export default function PublicEventClient({ publicId }: Props) {
   const [event, setEvent] = useState<EventResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -285,7 +300,7 @@ function getOrCreateClientId() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#f6f1ea] px-6 py-16 text-[#1f1b16]">
+      <main className="min-h-screen bg-[#f6f1ea] px-4 py-12 text-[#1f1b16] sm:px-6 sm:py-16">
         <div className="mx-auto max-w-4xl">読み込み中...</div>
       </main>
     );
@@ -293,7 +308,7 @@ function getOrCreateClientId() {
 
   if (!event) {
     return (
-      <main className="min-h-screen bg-[#f6f1ea] px-6 py-16 text-[#1f1b16]">
+      <main className="min-h-screen bg-[#f6f1ea] px-4 py-12 text-[#1f1b16] sm:px-6 sm:py-16">
         <div className="mx-auto max-w-4xl">
           <h1 className="text-2xl font-semibold">イベントが見つかりません</h1>
         </div>
@@ -302,13 +317,15 @@ function getOrCreateClientId() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f6f1ea] px-6 py-16 text-[#1f1b16]">
+    <main className="min-h-screen bg-[#f6f1ea] px-4 py-12 text-[#1f1b16] sm:px-6 sm:py-16">
       <div className="mx-auto max-w-4xl space-y-8">
-        <header className="rounded-3xl border border-[#e6d6c9] bg-white/80 p-8 shadow-[0_16px_36px_rgba(31,27,22,0.1)]">
+        <header className="rounded-3xl border border-[#e6d6c9] bg-white/80 p-6 shadow-[0_16px_36px_rgba(31,27,22,0.1)] sm:p-8">
           <p className="text-xs uppercase tracking-[0.3em] text-[#a1714f]">
-            Event
+            イベント
           </p>
-          <h1 className="mt-3 text-3xl font-semibold">{event.name}</h1>
+          <h1 className="mt-3 text-2xl font-semibold sm:text-3xl">
+            {event.name}
+          </h1>
           {event.memo ? (
             <p className="mt-2 text-sm text-[#6b5a4b]">{event.memo}</p>
           ) : null}
@@ -325,11 +342,11 @@ function getOrCreateClientId() {
               幹事ページへ
             </a>
           ) : null}
-          <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-[#6b5a4b]">
+          <div className="mt-4 flex flex-col gap-3 text-xs text-[#6b5a4b] sm:flex-row sm:flex-wrap sm:items-center">
             <span className="rounded-full bg-[#f3e8dd] px-3 py-1">
               参加者URL
             </span>
-            <code className="rounded-full border border-[#e2d6c9] bg-white px-3 py-1">
+            <code className="rounded-full border border-[#e2d6c9] bg-white px-3 py-1 break-all sm:break-normal">
               {typeof window !== "undefined"
                 ? `${window.location.origin}/e/${event.publicId}`
                 : `/e/${event.publicId}`}
@@ -352,7 +369,7 @@ function getOrCreateClientId() {
           </div>
         </header>
 
-        <section className="rounded-3xl border border-[#e6d6c9] bg-white/80 p-8">
+        <section className="rounded-3xl border border-[#e6d6c9] bg-white/80 p-6 sm:p-8">
           <h2 className="text-lg font-semibold">日程候補</h2>
           <p className="mt-2 text-xs text-[#6b5a4b]">
             名前をクリックすると投票を編集できます。
@@ -363,93 +380,184 @@ function getOrCreateClientId() {
                 候補日がまだ登録されていません。
               </p>
             ) : (
-              <table className="min-w-[640px] w-full border-separate border-spacing-0 text-sm">
-                <thead>
-                  <tr className="text-xs text-[#6b5a4b]">
-                    <th className="sticky left-0 z-10 bg-[#f6f1ea] px-3 py-2 text-left">
-                      日程
-                    </th>
-                    <th className="px-3 py-2 text-center">◯</th>
-                    <th className="px-3 py-2 text-center">△</th>
-                    <th className="px-3 py-2 text-center">✕</th>
-                    {sortedVotes.map((vote) => (
-                      <th key={vote.id} className="px-3 py-2 text-center">
-                        <button
-                          onClick={() => beginEdit(vote)}
-                          disabled={event.votingLocked}
-                          className="font-semibold text-[#1f1b16] underline decoration-dotted underline-offset-4 transition hover:text-[#5a4638] disabled:text-[#a78f7f]"
-                        >
-                          {vote.name}
-                        </button>
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {sortedCandidates.map((candidate) => {
-                    const responses = sortedVotes.map((vote) => {
-                      return (
-                        vote.choices.find(
-                          (choice) =>
-                            choice.candidateDateId === candidate.id
-                        )?.response ?? "NO"
-                      );
-                    });
-                    const countYes = responses.filter((r) => r === "YES").length;
-                    const countMaybe = responses.filter((r) => r === "MAYBE").length;
-                    const countNo = responses.filter((r) => r === "NO").length;
-                    const isConfirmed =
-                      event.scheduleStatus === "CONFIRMED" &&
-                      event.confirmedCandidateDateId === candidate.id;
-                    const isTop =
-                      topYesCount > 0 && countYes === topYesCount;
-                    return (
-                      <tr
-                        key={candidate.id}
-                        className={
-                          isConfirmed
-                            ? "bg-[#e8f5ea]"
-                            : isTop
-                          ? "bg-[#eaf4ee]"
-                            : "bg-white"
-                        }
-                      >
-                        <td className="sticky left-0 z-10 border-b border-[#eadbcf] bg-[#fbf6f1] px-3 py-3 font-semibold text-[#4d3f34]">
-                          <div className="flex items-center justify-between gap-2">
-                            <span>{formatShortDateTime(candidate.startsAt)}</span>
-                            {isConfirmed ? (
-                              <span className="rounded-full bg-[#5fa85a] px-2 py-0.5 text-[10px] text-white">
-                                確定
-                              </span>
-                            ) : null}
-                          </div>
-                        </td>
-                        <td className="border-b border-[#eadbcf] px-3 py-3 text-center">
-                          {countYes}
-                        </td>
-                        <td className="border-b border-[#eadbcf] px-3 py-3 text-center">
-                          {countMaybe}
-                        </td>
-                        <td className="border-b border-[#eadbcf] px-3 py-3 text-center">
-                          {countNo}
-                        </td>
-                        {responses.map((response, index) => (
-                          <td
-                            key={`${candidate.id}-${index}`}
-                            className={`border-b border-[#eadbcf] px-3 py-3 text-center text-sm ${
-                              response === "YES"
-                                ? "font-extrabold text-[#2f7f3b]"
-                                : "font-semibold text-[#1f1b16]"
-                            }`}
-                          >
-                            {responseLabels[response]}
-                          </td>
+              <>
+                <div className="block sm:hidden">
+                  <table className="min-w-[520px] w-full border-separate border-spacing-0 text-xs">
+                    <thead>
+                      <tr className="text-[11px] text-[#6b5a4b]">
+                        <th className="sticky left-0 z-10 min-w-[96px] whitespace-nowrap bg-[#f6f1ea] px-3 py-2 text-left">
+                          参加者
+                        </th>
+                        {sortedCandidates.map((candidate) => {
+                          const header = formatDateHeaderParts(candidate.startsAt);
+                          const responses = sortedVotes.map((vote) => {
+                            return (
+                              vote.choices.find(
+                                (choice) =>
+                                  choice.candidateDateId === candidate.id
+                              )?.response ?? "NO"
+                            );
+                          });
+                          const countYes = responses.filter(
+                            (response) => response === "YES"
+                          ).length;
+                          const isTop = topYesCount > 0 && countYes === topYesCount;
+                          return (
+                            <th
+                              key={candidate.id}
+                              className={`px-2 py-2 text-center font-semibold ${
+                                isTop ? "bg-[#eaf4ee] text-[#2f7f3b]" : "text-[#4d3f34]"
+                              }`}
+                            >
+                              <div className="min-w-[72px] whitespace-nowrap">
+                                <div>{header.date}</div>
+                                <div className="text-[10px] text-[#8a7767]">
+                                  {header.time}
+                                </div>
+                              </div>
+                            </th>
+                          );
+                        })}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sortedVotes.map((vote) => (
+                        <tr key={vote.id} className="bg-white">
+                          <th className="sticky left-0 z-10 min-w-[96px] whitespace-nowrap border-b border-[#eadbcf] bg-[#fbf6f1] px-3 py-3 text-left font-semibold text-[#4d3f34]">
+                            <button
+                              onClick={() => beginEdit(vote)}
+                              disabled={event.votingLocked}
+                              className="whitespace-nowrap underline decoration-dotted underline-offset-4 transition hover:text-[#5a4638] disabled:text-[#a78f7f]"
+                            >
+                              {vote.name}
+                            </button>
+                          </th>
+                          {sortedCandidates.map((candidate) => {
+                            const responses = sortedVotes.map((entry) => {
+                              return (
+                                entry.choices.find(
+                                  (choice) =>
+                                    choice.candidateDateId === candidate.id
+                                )?.response ?? "NO"
+                              );
+                            });
+                            const countYes = responses.filter(
+                              (response) => response === "YES"
+                            ).length;
+                            const isTop = topYesCount > 0 && countYes === topYesCount;
+                            const response =
+                              vote.choices.find(
+                                (choice) =>
+                                  choice.candidateDateId === candidate.id
+                              )?.response ?? "NO";
+                            return (
+                              <td
+                                key={`${vote.id}-${candidate.id}`}
+                                className={`border-b border-[#eadbcf] px-2 py-3 text-center ${
+                                  response === "YES"
+                                    ? "font-extrabold text-[#2f7f3b]"
+                                    : "font-semibold text-[#1f1b16]"
+                                } ${isTop ? "bg-[#eaf4ee]" : ""}`}
+                              >
+                                {responseLabels[response]}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="hidden sm:block">
+                  <table className="min-w-[640px] w-full border-separate border-spacing-0 text-sm">
+                    <thead>
+                      <tr className="text-xs text-[#6b5a4b]">
+                        <th className="sticky left-0 z-10 bg-[#f6f1ea] px-3 py-2 text-left">
+                          日程
+                        </th>
+                        <th className="px-3 py-2 text-center">◯</th>
+                        <th className="px-3 py-2 text-center">△</th>
+                        <th className="px-3 py-2 text-center">✕</th>
+                        {sortedVotes.map((vote) => (
+                          <th key={vote.id} className="px-3 py-2 text-center">
+                            <button
+                              onClick={() => beginEdit(vote)}
+                              disabled={event.votingLocked}
+                              className="font-semibold text-[#1f1b16] underline decoration-dotted underline-offset-4 transition hover:text-[#5a4638] disabled:text-[#a78f7f]"
+                            >
+                              {vote.name}
+                            </button>
+                          </th>
                         ))}
                       </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                    </thead>
+                    <tbody>
+                      {sortedCandidates.map((candidate) => {
+                        const responses = sortedVotes.map((vote) => {
+                          return (
+                            vote.choices.find(
+                              (choice) =>
+                                choice.candidateDateId === candidate.id
+                            )?.response ?? "NO"
+                          );
+                        });
+                        const countYes = responses.filter((r) => r === "YES").length;
+                        const countMaybe = responses.filter((r) => r === "MAYBE").length;
+                        const countNo = responses.filter((r) => r === "NO").length;
+                        const isConfirmed =
+                          event.scheduleStatus === "CONFIRMED" &&
+                          event.confirmedCandidateDateId === candidate.id;
+                        const isTop =
+                          topYesCount > 0 && countYes === topYesCount;
+                        return (
+                          <tr
+                            key={candidate.id}
+                            className={
+                              isConfirmed
+                                ? "bg-[#e8f5ea]"
+                                : isTop
+                              ? "bg-[#eaf4ee]"
+                                : "bg-white"
+                            }
+                          >
+                            <td className="sticky left-0 z-10 border-b border-[#eadbcf] bg-[#fbf6f1] px-3 py-3 font-semibold text-[#4d3f34]">
+                              <div className="flex items-center justify-between gap-2">
+                                <span>{formatShortDateTime(candidate.startsAt)}</span>
+                                {isConfirmed ? (
+                                  <span className="rounded-full bg-[#5fa85a] px-2 py-0.5 text-[10px] text-white">
+                                    確定
+                                  </span>
+                                ) : null}
+                              </div>
+                            </td>
+                            <td className="border-b border-[#eadbcf] px-3 py-3 text-center">
+                              {countYes}
+                            </td>
+                            <td className="border-b border-[#eadbcf] px-3 py-3 text-center">
+                              {countMaybe}
+                            </td>
+                            <td className="border-b border-[#eadbcf] px-3 py-3 text-center">
+                              {countNo}
+                            </td>
+                            {responses.map((response, index) => (
+                              <td
+                                key={`${candidate.id}-${index}`}
+                                className={`border-b border-[#eadbcf] px-3 py-3 text-center text-sm ${
+                                  response === "YES"
+                                    ? "font-extrabold text-[#2f7f3b]"
+                                    : "font-semibold text-[#1f1b16]"
+                                }`}
+                              >
+                                {responseLabels[response]}
+                              </td>
+                            ))}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </div>
           {sortedVotes.length === 0 ? (
@@ -461,7 +569,7 @@ function getOrCreateClientId() {
 
         <section
           ref={formRef}
-          className="rounded-3xl border border-[#e6d6c9] bg-white/80 p-8"
+          className="rounded-3xl border border-[#e6d6c9] bg-white/80 p-6 sm:p-8"
         >
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold">投票する</h2>
@@ -508,7 +616,7 @@ function getOrCreateClientId() {
               {event.candidateDates.map((candidate) => (
                 <div
                   key={candidate.id}
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#eadbcf] bg-white px-4 py-3"
+                  className="flex flex-col items-start gap-3 rounded-2xl border border-[#eadbcf] bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="text-xs">
                     {formatShortDateTime(candidate.startsAt)}
@@ -589,7 +697,7 @@ function getOrCreateClientId() {
         </section>
 
         {event.scheduleStatus === "CONFIRMED" ? (
-          <section className="rounded-3xl border border-[#e6d6c9] bg-white/80 p-8">
+          <section className="rounded-3xl border border-[#e6d6c9] bg-white/80 p-6 sm:p-8">
             <h2 className="text-lg font-semibold">出席一覧</h2>
             <div className="mt-4 grid gap-2 text-sm">
               {event.attendances.length === 0 ? (
@@ -608,7 +716,7 @@ function getOrCreateClientId() {
                       key={attendance.id}
                       className="rounded-2xl border border-[#eadbcf] bg-white px-4 py-3"
                     >
-                      <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                         <span>{attendance.name}</span>
                         <span className="text-xs text-[#7a6453]">
                           {attendance.isActual ? "実出席" : "未確定"}

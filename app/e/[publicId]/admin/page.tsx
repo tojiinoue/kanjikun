@@ -18,7 +18,7 @@ export default async function EventAdminPage({ params }: PageProps) {
 
   if (!event) {
     return (
-      <main className="min-h-screen bg-[#f6f1ea] px-6 py-16 text-[#1f1b16]">
+      <main className="min-h-screen bg-[#f6f1ea] px-4 py-12 text-[#1f1b16] sm:px-6 sm:py-16">
         <div className="mx-auto max-w-3xl">
           <h1 className="text-2xl font-semibold">イベントが見つかりません</h1>
         </div>
@@ -28,7 +28,7 @@ export default async function EventAdminPage({ params }: PageProps) {
 
   if (!session?.user?.id || session.user.id !== event.ownerUserId) {
     return (
-      <main className="min-h-screen bg-[#f6f1ea] px-6 py-16 text-[#1f1b16]">
+      <main className="min-h-screen bg-[#f6f1ea] px-4 py-12 text-[#1f1b16] sm:px-6 sm:py-16">
         <div className="mx-auto max-w-3xl rounded-3xl border border-[#e6d6c9] bg-white/80 p-8">
           <h1 className="text-2xl font-semibold">アクセスできません</h1>
           <p className="mt-2 text-sm text-[#6b5a4b]">

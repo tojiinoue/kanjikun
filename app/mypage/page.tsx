@@ -12,15 +12,15 @@ export default async function MyPage() {
 
   if (!session?.user?.id) {
     return (
-      <main className="min-h-screen bg-[#f6f1ea] px-6 py-16 text-[#1f1b16]">
-        <div className="mx-auto max-w-4xl rounded-3xl border border-[#e6d6c9] bg-white/80 p-10 text-center">
+      <main className="min-h-screen bg-[#f6f1ea] px-4 py-12 text-[#1f1b16] sm:px-6 sm:py-16">
+        <div className="mx-auto max-w-4xl rounded-3xl border border-[#e6d6c9] bg-white/80 p-6 text-center sm:p-10">
           <h1 className="text-2xl font-semibold">ログインしてください</h1>
           <p className="mt-3 text-sm text-[#6b5a4b]">
             マイページを見るにはログインが必要です。
           </p>
           <Link
             href="/login"
-            className="mt-6 inline-flex rounded-full bg-[#1f1b16] px-6 py-3 text-sm font-semibold text-white"
+            className="mt-6 inline-flex w-full justify-center rounded-full bg-[#1f1b16] px-6 py-3 text-sm font-semibold text-white sm:w-auto"
           >
             ログイン
           </Link>
@@ -40,9 +40,9 @@ export default async function MyPage() {
   });
 
   return (
-    <main className="min-h-screen bg-[#f6f1ea] px-6 py-16 text-[#1f1b16]">
+    <main className="min-h-screen bg-[#f6f1ea] px-4 py-12 text-[#1f1b16] sm:px-6 sm:py-16">
       <div className="mx-auto max-w-6xl">
-        <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-full border border-[#5fa85a] text-[#5fa85a]">
               <span className="text-xl">👤</span>
@@ -56,7 +56,7 @@ export default async function MyPage() {
           </div>
           <Link
             href="/events/new"
-            className="rounded-full bg-[#4a9d41] px-5 py-3 text-sm font-semibold text-white shadow-sm"
+            className="w-full rounded-full bg-[#4a9d41] px-5 py-3 text-center text-sm font-semibold text-white shadow-sm sm:w-auto"
           >
             新しいイベントを作る
           </Link>
@@ -115,25 +115,6 @@ export default async function MyPage() {
             )}
           </section>
 
-          <aside className="rounded-2xl border border-[#e2d6c9] bg-white/90 p-5 text-sm">
-            <p className="text-sm font-semibold text-[#4a4a4a]">メニュー</p>
-            <div className="mt-4 space-y-3 text-sm text-[#5a4d42]">
-              {[
-                "マイページトップ",
-                "プロフィール設定",
-                "メール受信設定",
-                "退会設定",
-              ].map((label) => (
-                <div
-                  key={label}
-                  className="flex items-center justify-between rounded-xl border border-[#e8ddd2] bg-[#faf7f3] px-4 py-3"
-                >
-                  <span>{label}</span>
-                  <span className="text-[#a08f82]">›</span>
-                </div>
-              ))}
-            </div>
-          </aside>
         </div>
       </div>
     </main>

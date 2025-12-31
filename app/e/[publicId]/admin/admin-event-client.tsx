@@ -427,7 +427,7 @@ export default function AdminEventClient({ publicId }: Props) {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#f6f1ea] px-6 py-16 text-[#1f1b16]">
+      <main className="min-h-screen bg-[#f6f1ea] px-4 py-12 text-[#1f1b16] sm:px-6 sm:py-16">
         <div className="mx-auto max-w-4xl">読み込み中...</div>
       </main>
     );
@@ -435,7 +435,7 @@ export default function AdminEventClient({ publicId }: Props) {
 
   if (!event) {
     return (
-      <main className="min-h-screen bg-[#f6f1ea] px-6 py-16 text-[#1f1b16]">
+      <main className="min-h-screen bg-[#f6f1ea] px-4 py-12 text-[#1f1b16] sm:px-6 sm:py-16">
         <div className="mx-auto max-w-4xl">
           <h1 className="text-2xl font-semibold">イベントが見つかりません</h1>
         </div>
@@ -444,13 +444,15 @@ export default function AdminEventClient({ publicId }: Props) {
   }
 
   return (
-    <main className="min-h-screen bg-[#f6f1ea] px-6 py-16 text-[#1f1b16]">
+    <main className="min-h-screen bg-[#f6f1ea] px-4 py-12 text-[#1f1b16] sm:px-6 sm:py-16">
       <div className="mx-auto max-w-4xl space-y-8">
-        <header className="rounded-3xl border border-[#e6d6c9] bg-white/80 p-8">
+        <header className="rounded-3xl border border-[#e6d6c9] bg-white/80 p-6 sm:p-8">
           <p className="text-xs uppercase tracking-[0.3em] text-[#a1714f]">
             管理
           </p>
-          <h1 className="mt-3 text-3xl font-semibold">{event.name}</h1>
+          <h1 className="mt-3 text-2xl font-semibold sm:text-3xl">
+            {event.name}
+          </h1>
           {event.memo ? (
             <p className="mt-2 text-sm text-[#6b5a4b]">{event.memo}</p>
           ) : null}
@@ -460,11 +462,11 @@ export default function AdminEventClient({ publicId }: Props) {
           >
             イベントページへ
           </a>
-          <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-[#6b5a4b]">
+          <div className="mt-4 flex flex-col gap-3 text-xs text-[#6b5a4b] sm:flex-row sm:flex-wrap sm:items-center">
             <span className="rounded-full bg-[#f3e8dd] px-3 py-1">
               参加者URL
             </span>
-            <code className="rounded-full border border-[#e2d6c9] bg-white px-3 py-1">
+            <code className="rounded-full border border-[#e2d6c9] bg-white px-3 py-1 break-all sm:break-normal">
               {typeof window !== "undefined"
                 ? `${window.location.origin}/e/${event.publicId}`
                 : `/e/${event.publicId}`}
@@ -488,12 +490,12 @@ export default function AdminEventClient({ publicId }: Props) {
           {error ? <p className="mt-4 text-sm text-red-600">{error}</p> : null}
         </header>
 
-        <section className="rounded-3xl border border-[#e6d6c9] bg-white/80 p-8">
+        <section className="rounded-3xl border border-[#e6d6c9] bg-white/80 p-6 sm:p-8">
           <h2 className="text-lg font-semibold">投票締切</h2>
           <p className="mt-2 text-sm text-[#6b5a4b]">
             {event.votingLocked ? "締切中" : "受付中"}
           </p>
-          <div className="mt-4 flex gap-3">
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row">
             <button
               onClick={() => toggleVotingLock(true)}
               disabled={event.votingLocked}
@@ -511,8 +513,8 @@ export default function AdminEventClient({ publicId }: Props) {
           </div>
         </section>
 
-        <section className="rounded-3xl border border-[#e6d6c9] bg-white/80 p-8">
-          <div className="flex items-center justify-between">
+        <section className="rounded-3xl border border-[#e6d6c9] bg-white/80 p-6 sm:p-8">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-lg font-semibold">日程候補の編集</h2>
             <button
               type="button"
@@ -522,7 +524,7 @@ export default function AdminEventClient({ publicId }: Props) {
                   ? "日程候補編集を閉じる"
                   : "日程候補編集を開く"
               }
-              className="flex h-9 w-36 items-center justify-center gap-2 rounded-full border border-[#d9d0c6] bg-[#f7f4f0] text-xs font-semibold text-[#5c5147] shadow-sm transition hover:bg-[#efe9e2]"
+              className="flex h-9 w-full items-center justify-center gap-2 rounded-full border border-[#d9d0c6] bg-[#f7f4f0] text-xs font-semibold text-[#5c5147] shadow-sm transition hover:bg-[#efe9e2] sm:w-36"
             >
               {showCandidateEditor ? "閉じる" : "編集する"}
               <span className="text-base leading-none">
@@ -697,7 +699,7 @@ export default function AdminEventClient({ publicId }: Props) {
           ) : null}
         </section>
 
-        <section className="rounded-3xl border border-[#e6d6c9] bg-white/80 p-8">
+        <section className="rounded-3xl border border-[#e6d6c9] bg-white/80 p-6 sm:p-8">
           <h2 className="text-lg font-semibold">日程確定</h2>
           <p className="mt-2 text-sm text-[#6b5a4b]">
             {event.scheduleStatus === "CONFIRMED"
@@ -730,7 +732,7 @@ export default function AdminEventClient({ publicId }: Props) {
 
         {scheduleConfirmed ? (
           <>
-            <section className="rounded-3xl border border-[#e6d6c9] bg-white/80 p-8">
+            <section className="rounded-3xl border border-[#e6d6c9] bg-white/80 p-6 sm:p-8">
               <h2 className="text-lg font-semibold">出席管理</h2>
               <div className="mt-4 space-y-3 text-sm">
                 {event.attendances.length === 0 ? (
@@ -771,7 +773,7 @@ export default function AdminEventClient({ publicId }: Props) {
               </div>
             </section>
 
-            <section className="rounded-3xl border border-[#e6d6c9] bg-white/80 p-8">
+            <section className="rounded-3xl border border-[#e6d6c9] bg-white/80 p-6 sm:p-8">
               <h2 className="text-lg font-semibold">会計確定</h2>
               <p className="mt-2 text-sm text-[#6b5a4b]">
                 {event.accountingStatus === "CONFIRMED"
@@ -830,7 +832,7 @@ export default function AdminEventClient({ publicId }: Props) {
               </div>
             </section>
 
-            <section className="rounded-3xl border border-[#e6d6c9] bg-white/80 p-8">
+            <section className="rounded-3xl border border-[#e6d6c9] bg-white/80 p-6 sm:p-8">
               <h2 className="text-lg font-semibold">支払管理</h2>
               <div className="mt-4 space-y-2 text-sm">
                 {event.payments.length === 0 ? (
@@ -839,7 +841,7 @@ export default function AdminEventClient({ publicId }: Props) {
                   event.payments.map((payment) => (
                     <div
                       key={payment.id}
-                      className={`flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#eadbcf] px-4 py-2 ${
+                      className={`flex flex-col items-start gap-3 rounded-2xl border border-[#eadbcf] px-4 py-2 sm:flex-row sm:items-center sm:justify-between ${
                         payment.status === "PENDING"
                           ? "bg-[#fff4e9]"
                           : "bg-white"
