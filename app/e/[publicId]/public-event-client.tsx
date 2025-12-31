@@ -382,10 +382,16 @@ function getOrCreateClientId() {
             ) : (
               <>
                 <div className="block sm:hidden">
-                  <table className="min-w-[520px] w-full border-separate border-spacing-0 text-xs">
+                  <table className="w-max table-fixed border-separate border-spacing-0 text-xs">
+                    <colgroup>
+                      <col className="w-[72px]" />
+                      {sortedCandidates.map((candidate) => (
+                        <col key={candidate.id} className="w-[72px]" />
+                      ))}
+                    </colgroup>
                     <thead>
                       <tr className="text-[11px] text-[#6b5a4b]">
-                        <th className="sticky left-0 z-10 min-w-[72px] whitespace-nowrap bg-[#f6f1ea] px-2 py-2 text-left">
+                        <th className="sticky left-0 z-10 w-[72px] bg-[#f6f1ea] px-2 py-2 text-left">
                           参加者
                         </th>
                         {sortedCandidates.map((candidate) => {
@@ -423,11 +429,11 @@ function getOrCreateClientId() {
                     <tbody>
                       {sortedVotes.map((vote) => (
                         <tr key={vote.id} className="bg-white">
-                          <th className="sticky left-0 z-10 min-w-[72px] whitespace-nowrap border-b border-[#eadbcf] bg-[#fbf6f1] px-2 py-3 text-left font-semibold text-[#4d3f34]">
+                          <th className="sticky left-0 z-10 w-[72px] border-b border-[#eadbcf] bg-[#fbf6f1] px-2 py-3 text-left font-semibold text-[#4d3f34]">
                             <button
                               onClick={() => beginEdit(vote)}
                               disabled={event.votingLocked}
-                              className="whitespace-nowrap underline decoration-dotted underline-offset-4 transition hover:text-[#5a4638] disabled:text-[#a78f7f]"
+                              className="break-words whitespace-normal underline decoration-dotted underline-offset-4 transition hover:text-[#5a4638] disabled:text-[#a78f7f]"
                             >
                               {vote.name}
                             </button>
