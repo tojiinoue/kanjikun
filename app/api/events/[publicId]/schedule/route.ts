@@ -2,7 +2,12 @@ import { NextResponse } from "next/server";
 
 import { assertEventAdmin } from "@/lib/authorization";
 import { prisma } from "@/lib/prisma";
-import { ScheduleStatus, AttendanceSource, VoteResponse } from "@prisma/client";
+import {
+  AccountingStatus,
+  ScheduleStatus,
+  AttendanceSource,
+  VoteResponse,
+} from "@prisma/client";
 
 type SchedulePayload = {
   candidateDateId?: string;
@@ -78,6 +83,44 @@ export async function POST(request: Request, { params }: Params) {
     prisma.attendance.createMany({
       data: attendanceData,
       skipDuplicates: false,
+    }),
+  ]);
+
+  return NextResponse.json({ ok: true });
+}
+
+export async function DELETE(request: Request, { params }: Params) {
+  const body = (await request.json()) as SchedulePayload;
+  const { publicId } = await params;
+  const event = await prisma.event.findUnique({
+    where: { publicId },
+  });
+
+  if (!event) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  const auth = await assertEventAdmin(event.id, body.ownerClientId);
+  if (!auth.ok) {
+    return NextResponse.json({ error: "Forbidden" }, { status: auth.status });
+  }
+
+  if (event.scheduleStatus !== ScheduleStatus.CONFIRMED) {
+    return NextResponse.json({ error: "Not confirmed" }, { status: 409 });
+  }
+
+  await prisma.$transaction([
+    prisma.payment.deleteMany({ where: { eventId: event.id } }),
+    prisma.attendance.deleteMany({ where: { eventId: event.id } }),
+    prisma.event.update({
+      where: { id: event.id },
+      data: {
+        confirmedCandidateDateId: null,
+        scheduleStatus: ScheduleStatus.PENDING,
+        accountingStatus: AccountingStatus.PENDING,
+        totalAmount: null,
+        perPersonAmount: null,
+      },
     }),
   ]);
 

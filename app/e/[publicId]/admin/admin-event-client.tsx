@@ -91,6 +91,10 @@ export default function AdminEventClient({ publicId }: Props) {
   const [newAttendanceName, setNewAttendanceName] = useState("");
   const [totalAmount, setTotalAmount] = useState("");
   const [adjustments, setAdjustments] = useState<Record<string, string>>({});
+  const [isEditingEvent, setIsEditingEvent] = useState(false);
+  const [draftName, setDraftName] = useState("");
+  const [draftMemo, setDraftMemo] = useState("");
+  const [eventEditError, setEventEditError] = useState<string | null>(null);
   const [candidateDrafts, setCandidateDrafts] = useState<
     Array<{ id?: string; startsAt: string }>
   >([]);
@@ -124,6 +128,10 @@ export default function AdminEventClient({ publicId }: Props) {
     }
     const data = (await response.json()) as EventResponse;
     setEvent(data);
+    if (!isEditingEvent) {
+      setDraftName(data.name);
+      setDraftMemo(data.memo ?? "");
+    }
     setSelectedCandidateId(data.confirmedCandidateDateId ?? "");
     setCandidateDrafts(
       data.candidateDates.map((candidate) => ({
@@ -142,6 +150,40 @@ export default function AdminEventClient({ publicId }: Props) {
     }
     void loadEvent();
   }, [publicId]);
+
+  async function saveEventDetails() {
+    if (!draftName.trim()) {
+      setEventEditError("イベント名を入力してください。");
+      return;
+    }
+    setEventEditError(null);
+    const response = await fetch(`/api/events/${publicId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: draftName,
+        memo: draftMemo,
+        ownerClientId: clientId,
+      }),
+    });
+    if (!response.ok) {
+      setEventEditError("イベント情報の更新に失敗しました。");
+      return;
+    }
+    setIsEditingEvent(false);
+    await loadEvent();
+  }
+
+  function cancelEventEdit() {
+    if (!event) {
+      setIsEditingEvent(false);
+      return;
+    }
+    setDraftName(event.name);
+    setDraftMemo(event.memo ?? "");
+    setEventEditError(null);
+    setIsEditingEvent(false);
+  }
 
   const actualAttendances = useMemo(
     () => (event?.attendances ?? []).filter((attendance) => attendance.isActual),
@@ -312,6 +354,23 @@ export default function AdminEventClient({ publicId }: Props) {
     await loadEvent();
   }
 
+  async function cancelSchedule() {
+    const ok = window.confirm(
+      "日程確定を取り消すと出席・会計・支払情報がリセットされます。続行しますか？"
+    );
+    if (!ok) return;
+    const response = await fetch(`/api/events/${publicId}/schedule`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ownerClientId: clientId }),
+    });
+    if (!response.ok) {
+      setError("日程確定の取り消しに失敗しました。");
+      return;
+    }
+    await loadEvent();
+  }
+
   async function updateAttendance(attendanceId: string, isActual: boolean) {
     const response = await fetch(`/api/events/${publicId}/attendance`, {
       method: "POST",
@@ -456,43 +515,101 @@ export default function AdminEventClient({ publicId }: Props) {
           <p className="text-xs uppercase tracking-[0.3em] text-[#a1714f]">
             管理
           </p>
-          <h1 className="mt-3 text-2xl font-semibold sm:text-3xl">
-            {event.name}
-          </h1>
-          {event.memo ? (
-            <p className="mt-2 text-sm text-[#6b5a4b]">{event.memo}</p>
+          {isEditingEvent ? (
+            <div className="mt-3 space-y-6">
+              <div>
+                <label className="text-xs font-semibold text-[#6b5a4b]">
+                  イベント名
+                </label>
+                <input
+                  value={draftName}
+                  onChange={(eventInput) => setDraftName(eventInput.target.value)}
+                  className="mt-2 w-full rounded-xl border border-[#e2d6c9] bg-white px-4 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-[#6b5a4b]">
+                  メモ（任意）
+                </label>
+                <textarea
+                  value={draftMemo}
+                  onChange={(eventInput) => setDraftMemo(eventInput.target.value)}
+                  rows={3}
+                  className="mt-2 w-full rounded-xl border border-[#e2d6c9] bg-white px-4 py-2 text-sm"
+                />
+              </div>
+              {eventEditError ? (
+                <p className="text-xs text-red-600">{eventEditError}</p>
+              ) : null}
+              <div className="flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={saveEventDetails}
+                  className="rounded-full bg-[#1f1b16] px-4 py-2 text-xs font-semibold text-white"
+                >
+                  変更を保存
+                </button>
+                <button
+                  type="button"
+                  onClick={cancelEventEdit}
+                  className="rounded-full border border-[#1f1b16] px-4 py-2 text-xs font-semibold text-[#1f1b16]"
+                >
+                  キャンセル
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <h1 className="mt-3 text-2xl font-semibold sm:text-3xl">
+                {event.name}
+              </h1>
+              {event.memo ? (
+                <p className="mt-2 text-sm text-[#6b5a4b]">{event.memo}</p>
+              ) : null}
+              <div className="mt-6 flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsEditingEvent(true)}
+                  className="inline-flex rounded-full border border-[#1f1b16] px-4 py-2 text-xs font-semibold text-[#1f1b16]"
+                >
+                  イベント情報を編集
+                </button>
+                <a
+                  className="inline-flex rounded-full border border-[#1f1b16] px-4 py-2 text-xs font-semibold text-[#1f1b16]"
+                  href={`/e/${event.publicId}`}
+                >
+                  イベントページへ
+                </a>
+              </div>
+            </>
+          )}
+          {!isEditingEvent ? (
+            <div className="mt-4 flex flex-col gap-3 text-xs text-[#6b5a4b] sm:flex-row sm:flex-wrap sm:items-center">
+              <span className="rounded-full bg-[#f3e8dd] px-3 py-1">
+                参加者URL
+              </span>
+              <code className="rounded-full border border-[#e2d6c9] bg-white px-3 py-1 break-all sm:break-normal">
+                {typeof window !== "undefined"
+                  ? `${window.location.origin}/e/${event.publicId}`
+                  : `/e/${event.publicId}`}
+              </code>
+              <button
+                type="button"
+                onClick={async () => {
+                  await navigator.clipboard.writeText(
+                    typeof window !== "undefined"
+                      ? `${window.location.origin}/e/${event.publicId}`
+                      : `/e/${event.publicId}`
+                  );
+                  setCopied(true);
+                  window.setTimeout(() => setCopied(false), 1500);
+                }}
+                className="rounded-full border border-[#1f1b16] px-3 py-1 text-xs font-semibold text-[#1f1b16] transition hover:bg-[#f3e8dd]"
+              >
+                {copied ? "コピーしました" : "コピー"}
+              </button>
+            </div>
           ) : null}
-          <a
-            className="mt-4 inline-flex rounded-full border border-[#1f1b16] px-4 py-2 text-xs font-semibold text-[#1f1b16]"
-            href={`/e/${event.publicId}`}
-          >
-            イベントページへ
-          </a>
-          <div className="mt-4 flex flex-col gap-3 text-xs text-[#6b5a4b] sm:flex-row sm:flex-wrap sm:items-center">
-            <span className="rounded-full bg-[#f3e8dd] px-3 py-1">
-              参加者URL
-            </span>
-            <code className="rounded-full border border-[#e2d6c9] bg-white px-3 py-1 break-all sm:break-normal">
-              {typeof window !== "undefined"
-                ? `${window.location.origin}/e/${event.publicId}`
-                : `/e/${event.publicId}`}
-            </code>
-            <button
-              type="button"
-              onClick={async () => {
-                await navigator.clipboard.writeText(
-                  typeof window !== "undefined"
-                    ? `${window.location.origin}/e/${event.publicId}`
-                    : `/e/${event.publicId}`
-                );
-                setCopied(true);
-                window.setTimeout(() => setCopied(false), 1500);
-              }}
-              className="rounded-full border border-[#1f1b16] px-3 py-1 text-xs font-semibold text-[#1f1b16] transition hover:bg-[#f3e8dd]"
-            >
-              {copied ? "コピーしました" : "コピー"}
-            </button>
-          </div>
           {error ? <p className="mt-4 text-sm text-red-600">{error}</p> : null}
         </header>
 
@@ -502,20 +619,21 @@ export default function AdminEventClient({ publicId }: Props) {
             {event.votingLocked ? "締切中" : "受付中"}
           </p>
           <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-            <button
-              onClick={() => toggleVotingLock(true)}
-              disabled={event.votingLocked}
-              className="rounded-full bg-[#1f1b16] px-4 py-2 text-xs font-semibold text-white"
-            >
-              締切にする
-            </button>
-            <button
-              onClick={() => toggleVotingLock(false)}
-              disabled={!event.votingLocked}
-              className="rounded-full border border-[#1f1b16] px-4 py-2 text-xs font-semibold text-[#1f1b16]"
-            >
-              締切を解除
-            </button>
+            {event.votingLocked ? (
+              <button
+                onClick={() => toggleVotingLock(false)}
+                className="rounded-full border border-[#1f1b16] px-4 py-2 text-xs font-semibold text-[#1f1b16]"
+              >
+                締切を解除
+              </button>
+            ) : (
+              <button
+                onClick={() => toggleVotingLock(true)}
+                className="rounded-full bg-[#1f1b16] px-4 py-2 text-xs font-semibold text-white"
+              >
+                締切にする
+              </button>
+            )}
           </div>
         </section>
 
@@ -728,13 +846,22 @@ export default function AdminEventClient({ publicId }: Props) {
                 </option>
               ))}
             </select>
-            <button
-              onClick={confirmSchedule}
-              disabled={!selectedCandidateId || scheduleConfirmed}
-              className="rounded-full bg-[#1f1b16] px-4 py-2 text-xs font-semibold text-white"
-            >
-              日程を確定する
-            </button>
+            {scheduleConfirmed ? (
+              <button
+                onClick={cancelSchedule}
+                className="rounded-full border border-[#1f1b16] px-4 py-2 text-xs font-semibold text-[#1f1b16]"
+              >
+                日程確定を取り消す
+              </button>
+            ) : (
+              <button
+                onClick={confirmSchedule}
+                disabled={!selectedCandidateId}
+                className="rounded-full bg-[#1f1b16] px-4 py-2 text-xs font-semibold text-white disabled:opacity-60"
+              >
+                日程を確定する
+              </button>
+            )}
           </div>
         </section>
 
