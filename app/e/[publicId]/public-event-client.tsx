@@ -388,6 +388,7 @@ function getOrCreateClientId() {
                       {sortedCandidates.map((candidate) => (
                         <col key={candidate.id} className="w-[72px]" />
                       ))}
+                      <col className="w-[96px]" />
                     </colgroup>
                     <thead>
                       <tr className="text-[11px] text-[#6b5a4b]">
@@ -424,6 +425,9 @@ function getOrCreateClientId() {
                             </th>
                           );
                         })}
+                        <th className="px-2 py-2 text-left font-semibold text-[#4d3f34]">
+                          コメント
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
@@ -469,6 +473,9 @@ function getOrCreateClientId() {
                               </td>
                             );
                           })}
+                          <td className="border-b border-[#eadbcf] px-2 py-3 text-left text-[11px] text-[#6b5a4b]">
+                            {vote.comment ?? ""}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -545,21 +552,43 @@ function getOrCreateClientId() {
                             <td className="border-b border-[#eadbcf] px-3 py-3 text-center">
                               {countNo}
                             </td>
-                            {responses.map((response, index) => (
-                              <td
-                                key={`${candidate.id}-${index}`}
-                                className={`border-b border-[#eadbcf] px-3 py-3 text-center text-sm ${
-                                  response === "YES"
-                                    ? "font-extrabold text-[#2f7f3b]"
-                                    : "font-semibold text-[#1f1b16]"
-                                }`}
-                              >
-                                {responseLabels[response]}
-                              </td>
-                            ))}
-                          </tr>
-                        );
-                      })}
+                        {responses.map((response, index) => (
+                          <td
+                            key={`${candidate.id}-${index}`}
+                            className={`border-b border-[#eadbcf] px-3 py-3 text-center text-sm ${
+                              response === "YES"
+                                ? "font-extrabold text-[#2f7f3b]"
+                                : "font-semibold text-[#1f1b16]"
+                            }`}
+                          >
+                            {responseLabels[response]}
+                          </td>
+                        ))}
+                      </tr>
+                    );
+                  })}
+                      <tr className="bg-white">
+                        <th className="sticky left-0 z-10 border-b border-[#eadbcf] bg-[#fbf6f1] px-3 py-3 text-left font-semibold text-[#4d3f34]">
+                          コメント
+                        </th>
+                        <td className="border-b border-[#eadbcf] px-3 py-3 text-center text-sm text-[#6b5a4b]">
+                          -
+                        </td>
+                        <td className="border-b border-[#eadbcf] px-3 py-3 text-center text-sm text-[#6b5a4b]">
+                          -
+                        </td>
+                        <td className="border-b border-[#eadbcf] px-3 py-3 text-center text-sm text-[#6b5a4b]">
+                          -
+                        </td>
+                        {sortedVotes.map((vote) => (
+                          <td
+                            key={`comment-${vote.id}`}
+                            className="border-b border-[#eadbcf] px-3 py-3 text-center text-xs text-[#6b5a4b]"
+                          >
+                            {vote.comment ?? ""}
+                          </td>
+                        ))}
+                      </tr>
                     </tbody>
                   </table>
                 </div>
