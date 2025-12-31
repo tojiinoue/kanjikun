@@ -118,12 +118,18 @@ export default function AdminEventClient({ publicId }: Props) {
     )}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
   }
 
-  async function loadEvent() {
-    setLoading(true);
+  async function loadEvent(preserveScroll = false) {
+    const scrollY =
+      preserveScroll && typeof window !== "undefined" ? window.scrollY : null;
+    if (!preserveScroll) {
+      setLoading(true);
+    }
     const response = await fetch(`/api/events/${publicId}`);
     if (!response.ok) {
       setError("イベントを取得できませんでした。");
-      setLoading(false);
+      if (!preserveScroll) {
+        setLoading(false);
+      }
       return;
     }
     const data = (await response.json()) as EventResponse;
@@ -139,7 +145,14 @@ export default function AdminEventClient({ publicId }: Props) {
         startsAt: formatDateTimeLocal(candidate.startsAt),
       }))
     );
-    setLoading(false);
+    if (!preserveScroll) {
+      setLoading(false);
+    }
+    if (scrollY !== null) {
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: scrollY });
+      });
+    }
   }
 
   useEffect(() => {
@@ -171,7 +184,7 @@ export default function AdminEventClient({ publicId }: Props) {
       return;
     }
     setIsEditingEvent(false);
-    await loadEvent();
+    await loadEvent(true);
   }
 
   function cancelEventEdit() {
@@ -308,7 +321,7 @@ export default function AdminEventClient({ publicId }: Props) {
       setCandidateError("候補日の保存に失敗しました。");
       return;
     }
-    await loadEvent();
+    await loadEvent(true);
   }
 
   function cancelCandidateEdits() {
@@ -334,7 +347,7 @@ export default function AdminEventClient({ publicId }: Props) {
       setError("締切状態の更新に失敗しました。");
       return;
     }
-    await loadEvent();
+    await loadEvent(true);
   }
 
   async function confirmSchedule() {
@@ -351,7 +364,7 @@ export default function AdminEventClient({ publicId }: Props) {
       setError("日程の確定に失敗しました。");
       return;
     }
-    await loadEvent();
+    await loadEvent(true);
   }
 
   async function cancelSchedule() {
@@ -368,7 +381,7 @@ export default function AdminEventClient({ publicId }: Props) {
       setError("日程確定の取り消しに失敗しました。");
       return;
     }
-    await loadEvent();
+    await loadEvent(true);
   }
 
   async function updateAttendance(attendanceId: string, isActual: boolean) {
@@ -384,7 +397,7 @@ export default function AdminEventClient({ publicId }: Props) {
       setError("出席の更新に失敗しました。");
       return;
     }
-    await loadEvent();
+    await loadEvent(true);
   }
 
   async function addAttendance() {
@@ -404,7 +417,7 @@ export default function AdminEventClient({ publicId }: Props) {
       return;
     }
     setNewAttendanceName("");
-    await loadEvent();
+    await loadEvent(true);
   }
 
   async function confirmAccounting() {
@@ -442,10 +455,14 @@ export default function AdminEventClient({ publicId }: Props) {
       return;
     }
     setAccountingError(null);
-    await loadEvent();
+    await loadEvent(true);
   }
 
   async function cancelAccounting() {
+    const ok = window.confirm(
+      "会計確定を取り消すと支払情報がリセットされます。続行しますか？"
+    );
+    if (!ok) return;
     const response = await fetch(`/api/events/${publicId}/accounting`, {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
@@ -455,7 +472,7 @@ export default function AdminEventClient({ publicId }: Props) {
       setError("会計の取り消しに失敗しました。");
       return;
     }
-    await loadEvent();
+    await loadEvent(true);
   }
 
   async function approvePayment(paymentId: string) {
@@ -471,7 +488,7 @@ export default function AdminEventClient({ publicId }: Props) {
       setError("承認に失敗しました。");
       return;
     }
-    await loadEvent();
+    await loadEvent(true);
   }
 
   async function rejectPayment(paymentId: string) {
@@ -487,7 +504,7 @@ export default function AdminEventClient({ publicId }: Props) {
       setError("差し戻しに失敗しました。");
       return;
     }
-    await loadEvent();
+    await loadEvent(true);
   }
 
   if (loading) {
@@ -567,6 +584,12 @@ export default function AdminEventClient({ publicId }: Props) {
                 <p className="mt-2 text-sm text-[#6b5a4b]">{event.memo}</p>
               ) : null}
               <div className="mt-6 flex flex-wrap gap-3">
+                <a
+                  className="inline-flex rounded-full border border-[#1f1b16] px-4 py-2 text-xs font-semibold text-[#1f1b16]"
+                  href={`/e/${event.publicId}`}
+                >
+                  イベントページへ
+                </a>
                 <button
                   type="button"
                   onClick={() => setIsEditingEvent(true)}
@@ -574,12 +597,6 @@ export default function AdminEventClient({ publicId }: Props) {
                 >
                   イベント情報を編集
                 </button>
-                <a
-                  className="inline-flex rounded-full border border-[#1f1b16] px-4 py-2 text-xs font-semibold text-[#1f1b16]"
-                  href={`/e/${event.publicId}`}
-                >
-                  イベントページへ
-                </a>
               </div>
             </>
           )}
