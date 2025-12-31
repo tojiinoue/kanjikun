@@ -218,11 +218,17 @@ export default function AdminEventClient({ publicId }: Props) {
     setCalendarMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + offset, 1));
   }
 
+  const weekStartsOn = 0;
+  const weekdayLabels = ["日", "月", "火", "水", "木", "金", "土"];
+  const displayWeekdays = [
+    ...weekdayLabels.slice(weekStartsOn),
+    ...weekdayLabels.slice(0, weekStartsOn),
+  ];
   const monthMatrix = (() => {
     const year = calendarMonth.getFullYear();
     const month = calendarMonth.getMonth();
     const firstDay = new Date(year, month, 1);
-    const startDay = firstDay.getDay();
+    const startDay = (firstDay.getDay() - weekStartsOn + 7) % 7;
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const weeks: Array<Array<number | null>> = [];
     let currentDay = 1 - startDay;
@@ -641,7 +647,7 @@ export default function AdminEventClient({ publicId }: Props) {
                     </button>
                   </div>
                   <div className="mt-2 grid grid-cols-7 gap-2 text-center text-xs">
-                    {["日", "月", "火", "水", "木", "金", "土"].map((label) => (
+                    {displayWeekdays.map((label) => (
                       <div key={label} className="font-semibold text-[#6b5a4b]">
                         {label}
                       </div>
@@ -649,7 +655,9 @@ export default function AdminEventClient({ publicId }: Props) {
                     {monthMatrix.map((week, weekIndex) =>
                       week.map((day, dayIndex) => {
                         if (!day) {
-                          return <div key={`${weekIndex}-${dayIndex}`} />;
+                          return (
+                            <div key={`empty-${weekIndex}-${dayIndex}`} />
+                          );
                         }
                         const date = new Date(
                           calendarMonth.getFullYear(),
@@ -658,7 +666,7 @@ export default function AdminEventClient({ publicId }: Props) {
                         );
                         return (
                           <button
-                            key={`${weekIndex}-${day}`}
+                            key={`day-${weekIndex}-${dayIndex}`}
                             type="button"
                             onClick={() => addCandidateFromDate(date)}
                             disabled={scheduleConfirmed}
