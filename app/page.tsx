@@ -1,4 +1,9 @@
-export default function Home() {
+import { getServerAuthSession } from "@/lib/session";
+
+export default async function Home() {
+  const session = await getServerAuthSession();
+  const isLoggedIn = Boolean(session?.user?.id);
+
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#f6f1ea] text-[#1f1b16]">
       <div className="pointer-events-none absolute -left-20 top-20 h-80 w-80 rounded-full bg-[#f0d9c7] blur-[120px]" />
@@ -20,18 +25,29 @@ export default function Home() {
               幹事の“やり残し”をなくすための管理ツールです。
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-              <a
-                href="/login"
-                className="w-full rounded-full bg-[#1f1b16] px-6 py-3 text-center text-sm font-semibold text-white transition hover:bg-[#3a312a] sm:w-auto"
-              >
-                幹事ログイン
-              </a>
-              <a
-                href="/signup"
-                className="w-full rounded-full border border-[#1f1b16] px-6 py-3 text-center text-sm font-semibold text-[#1f1b16] transition hover:bg-[#f3e8dd] sm:w-auto"
-              >
-                アカウント作成
-              </a>
+              {isLoggedIn ? (
+                <a
+                  href="/events/new"
+                  className="w-full rounded-full bg-[#1f1b16] px-6 py-3 text-center text-sm font-semibold text-white transition hover:bg-[#3a312a] sm:w-auto"
+                >
+                  イベントを作成する
+                </a>
+              ) : (
+                <>
+                  <a
+                    href="/login"
+                    className="w-full rounded-full bg-[#1f1b16] px-6 py-3 text-center text-sm font-semibold text-white transition hover:bg-[#3a312a] sm:w-auto"
+                  >
+                    幹事ログイン
+                  </a>
+                  <a
+                    href="/signup"
+                    className="w-full rounded-full border border-[#1f1b16] px-6 py-3 text-center text-sm font-semibold text-[#1f1b16] transition hover:bg-[#f3e8dd] sm:w-auto"
+                  >
+                    アカウント作成
+                  </a>
+                </>
+              )}
             </div>
             <div className="mt-10 flex flex-wrap gap-6 text-sm text-[#7a6453]">
               <div>
@@ -42,6 +58,14 @@ export default function Home() {
                 <p className="text-xs uppercase tracking-[0.2em]">招待</p>
                 <p className="mt-2">URLだけで参加できる</p>
               </div>
+            </div>
+            <div className="mt-6">
+              <a
+                href="/guide"
+                className="text-sm font-semibold text-[#5a4638] underline decoration-dotted underline-offset-4 transition hover:text-[#2f231b]"
+              >
+                使い方を見る
+              </a>
             </div>
           </section>
 
