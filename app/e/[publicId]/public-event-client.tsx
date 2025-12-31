@@ -117,8 +117,12 @@ function getOrCreateClientId() {
   return generated;
 }
 
-  async function loadEvent() {
-    setLoading(true);
+  async function loadEvent(preserveScroll = false) {
+    const scrollY =
+      preserveScroll && typeof window !== "undefined" ? window.scrollY : null;
+    if (!preserveScroll) {
+      setLoading(true);
+    }
     const response = await fetch(`/api/events/${publicId}`, {
       headers: {
         "x-owner-client-id": clientId,
@@ -126,12 +130,23 @@ function getOrCreateClientId() {
     });
     if (!response.ok) {
       setError("イベントを取得できませんでした。");
-      setLoading(false);
+      if (!preserveScroll) {
+        setLoading(false);
+      }
       return;
     }
     const data = (await response.json()) as EventResponse;
     setEvent(data);
-    setLoading(false);
+    if (!preserveScroll) {
+      setLoading(false);
+    }
+    if (scrollY !== null) {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          window.scrollTo({ top: scrollY });
+        });
+      });
+    }
   }
 
   useEffect(() => {
@@ -282,7 +297,7 @@ function getOrCreateClientId() {
       setError("支払申請に失敗しました。");
       return;
     }
-    await loadEvent();
+    await loadEvent(true);
   }
 
   async function cancelPayment(attendanceId: string) {
@@ -295,7 +310,7 @@ function getOrCreateClientId() {
       setError("支払申請の取消に失敗しました。");
       return;
     }
-    await loadEvent();
+    await loadEvent(true);
   }
 
   if (loading) {
