@@ -23,6 +23,7 @@
 - 投票締切は状態に応じてボタンを切り替え表示。
 - トップページはログイン状態に応じて導線を切り替え、使い方案内ページを追加。
 - イベント作成ページは未ログイン時にログインへリダイレクト。
+- ボタン押下時のフィードバック（押し込み/保存中表示）を追加。
 
 ## 変更内容（主要）
 ### 認可/認証
@@ -45,6 +46,8 @@
 - 投票締切は状態に応じて「締切にする/締切を解除」を切り替え表示。
 - イベント情報（名/メモ）を編集可能にし、編集中は参加者URL・イベントページ導線を非表示。
 - 操作後のスクロール位置を維持。
+- 日程候補編集の保存/キャンセル後に編集パネルを閉じる。
+- 日程候補保存、編集キャンセルなどのボタンに押下フィードバックを追加。
 
 ### 会計ロジック
 - 金額調整の合計を差し引いた残額を、未調整人数で割る方式に変更。
@@ -66,6 +69,8 @@
 - `app/e/[publicId]/admin/admin-event-client.tsx`
 - `app/api/events/[publicId]/accounting/route.ts`
 - `app/api/events/[publicId]/schedule/route.ts`
+- `app/_components/site-header-actions.tsx`
+- `app/mypage/page.tsx`
 - `.kiro/steering/tech.md`
 - `.kiro/specs/飲み会管理/design.md`
 - `.kiro/specs/飲み会管理/tasks.md`
