@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { formatAreaLabel } from "@/lib/area-options";
+
 type CandidateDate = {
   id: string;
   startsAt: string;
@@ -37,6 +39,8 @@ type EventResponse = {
   publicId: string;
   name: string;
   memo?: string | null;
+  areaPrefCode?: string | null;
+  areaMunicipalityName?: string | null;
   votingLocked: boolean;
   scheduleStatus: "PENDING" | "CONFIRMED";
   confirmedCandidateDateId?: string | null;
@@ -341,9 +345,20 @@ function getOrCreateClientId() {
           <h1 className="mt-3 text-2xl font-semibold sm:text-3xl">
             {event.name}
           </h1>
-          {event.memo ? (
-            <p className="mt-2 text-sm text-[#6b5a4b]">{event.memo}</p>
-          ) : null}
+          <div className="mt-3 space-y-2 text-sm text-[#6b5a4b]">
+            {formatAreaLabel(event.areaPrefCode, event.areaMunicipalityName) ? (
+              <p>
+                エリア:{" "}
+                <span className="font-semibold text-[#4d3f34]">
+                  {formatAreaLabel(
+                    event.areaPrefCode,
+                    event.areaMunicipalityName
+                  )}
+                </span>
+              </p>
+            ) : null}
+            {event.memo ? <p>{event.memo}</p> : null}
+          </div>
           {event.votingLocked ? (
             <p className="mt-4 text-xs text-[#b45309]">
               投票は締切済みです。

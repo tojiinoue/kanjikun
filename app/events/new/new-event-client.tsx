@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+
+import { PREFECTURES } from "@/lib/area-options";
 
 type CandidateInput = {
   startsAt: string;
@@ -30,6 +32,26 @@ function getOrCreateClientId() {
 export default function NewEventClient() {
   const router = useRouter();
   const [name, setName] = useState("");
+  const [areaPrefCode, setAreaPrefCode] = useState("");
+  const [municipalityName, setMunicipalityName] = useState("");
+  const [municipalityQuery, setMunicipalityQuery] = useState("");
+  const [municipalityOptions, setMunicipalityOptions] = useState<
+    Array<{ id: string; name: string }>
+  >([]);
+  const [municipalityLoading, setMunicipalityLoading] = useState(false);
+  const [municipalityOpen, setMunicipalityOpen] = useState(false);
+  const [municipalityOffset, setMunicipalityOffset] = useState(0);
+  const [municipalityHasMore, setMunicipalityHasMore] = useState(false);
+  const municipalityCache = useMemo(
+    () =>
+      new Map<
+        string,
+        { items: Array<{ id: string; name: string }>; nextOffset: number | null }
+      >(),
+    []
+  );
+  const [prefectureQuery, setPrefectureQuery] = useState("");
+  const [prefectureOpen, setPrefectureOpen] = useState(false);
   const [memo, setMemo] = useState("");
   const [candidates, setCandidates] = useState<CandidateInput[]>([]);
   const [calendarMonth, setCalendarMonth] = useState(() => new Date());
@@ -41,6 +63,105 @@ export default function NewEventClient() {
   useEffect(() => {
     setClientId(getOrCreateClientId());
   }, []);
+
+  useEffect(() => {
+    if (!areaPrefCode) {
+      setMunicipalityOptions([]);
+      setMunicipalityOffset(0);
+      setMunicipalityHasMore(false);
+      return;
+    }
+    const cacheKey = `${areaPrefCode}::${municipalityQuery}`;
+    if (municipalityCache.has(cacheKey)) {
+      const cached = municipalityCache.get(cacheKey);
+      setMunicipalityOptions(cached?.items ?? []);
+      setMunicipalityOffset(cached?.nextOffset ?? 0);
+      setMunicipalityHasMore(cached?.nextOffset !== null);
+      return;
+    }
+    setMunicipalityLoading(true);
+    const handle = window.setTimeout(async () => {
+      try {
+        const response = await fetch(
+          `/api/municipalities?pref=${areaPrefCode}&q=${encodeURIComponent(
+            municipalityQuery
+          )}&limit=30&offset=0`
+        );
+        if (!response.ok) {
+          setMunicipalityOptions([]);
+          setMunicipalityOffset(0);
+          setMunicipalityHasMore(false);
+          return;
+        }
+        const data = (await response.json()) as {
+          municipalities: Array<{ id: string; name: string }>;
+          nextOffset: number | null;
+        };
+        municipalityCache.set(cacheKey, {
+          items: data.municipalities,
+          nextOffset: data.nextOffset,
+        });
+        setMunicipalityOptions(data.municipalities);
+        setMunicipalityOffset(data.nextOffset ?? 0);
+        setMunicipalityHasMore(data.nextOffset !== null);
+      } finally {
+        setMunicipalityLoading(false);
+      }
+    }, 300);
+    return () => window.clearTimeout(handle);
+  }, [areaPrefCode, municipalityQuery, municipalityCache]);
+
+  const filteredPrefectures = useMemo(() => {
+    const query = prefectureQuery.trim();
+    if (!query) return PREFECTURES;
+    return PREFECTURES.filter((pref) => pref.name.includes(query));
+  }, [prefectureQuery]);
+
+  function selectPrefecture(prefCode: string, prefName: string) {
+    setAreaPrefCode(prefCode);
+    setPrefectureQuery(prefName);
+    setPrefectureOpen(false);
+    setMunicipalityName("");
+    setMunicipalityQuery("");
+    setMunicipalityOptions([]);
+    setMunicipalityOffset(0);
+    setMunicipalityHasMore(false);
+    setMunicipalityOpen(true);
+  }
+
+  async function loadMoreMunicipalities() {
+    if (municipalityLoading || !municipalityHasMore) return;
+    setMunicipalityLoading(true);
+    try {
+      const response = await fetch(
+        `/api/municipalities?pref=${areaPrefCode}&q=${encodeURIComponent(
+          municipalityQuery
+        )}&limit=30&offset=${municipalityOffset}`
+      );
+      if (!response.ok) {
+        setMunicipalityHasMore(false);
+        return;
+      }
+      const data = (await response.json()) as {
+        municipalities: Array<{ id: string; name: string }>;
+        nextOffset: number | null;
+      };
+      setMunicipalityOptions((prev) => [...prev, ...data.municipalities]);
+      setMunicipalityOffset(data.nextOffset ?? municipalityOffset);
+      setMunicipalityHasMore(data.nextOffset !== null);
+    } finally {
+      setMunicipalityLoading(false);
+    }
+  }
+
+  function handleMunicipalityScroll(
+    event: React.UIEvent<HTMLUListElement>
+  ) {
+    const { scrollTop, clientHeight, scrollHeight } = event.currentTarget;
+    if (scrollHeight - scrollTop - clientHeight < 24) {
+      void loadMoreMunicipalities();
+    }
+  }
 
   function formatDateTimeLocal(date: Date, time: string) {
     const [hours, minutes] = time.split(":").map((value) => Number(value));
@@ -133,6 +254,8 @@ export default function NewEventClient() {
     const payload = {
       name,
       memo,
+      areaPrefCode: areaPrefCode || null,
+      areaMunicipalityName: municipalityName || null,
       ownerClientId: clientId,
       candidates: validCandidates.map((candidate) => ({
         startsAt: toIsoFromLocal(candidate.startsAt),
@@ -186,6 +309,135 @@ export default function NewEventClient() {
               required
               className="mt-2 w-full rounded-xl border border-[#e2d6c9] bg-white px-4 py-3 text-sm outline-none transition focus:border-[#c08b65]"
             />
+          </div>
+          <div>
+            <label className="text-sm font-medium">エリア（任意）</label>
+            <div className="mt-3 rounded-2xl border border-[#eadbcf] bg-white/80 p-4">
+              <p className="text-xs text-[#6b5a4b]">
+                都道府県を選択すると市区町村の検索ができます。
+              </p>
+              <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="text-xs font-semibold text-[#6b5a4b]">
+                    都道府県
+                  </label>
+                  <div className="relative mt-2">
+                    <input
+                      value={prefectureQuery}
+                      onChange={(event) => {
+                        setPrefectureQuery(event.target.value);
+                        if (!prefectureOpen) {
+                          setPrefectureOpen(true);
+                        }
+                      }}
+                      onFocus={() => setPrefectureOpen(true)}
+                      onBlur={() => {
+                        window.setTimeout(() => setPrefectureOpen(false), 150);
+                      }}
+                      placeholder="都道府県を検索"
+                      className="w-full rounded-xl border border-[#e2d6c9] bg-white px-3 py-3 text-sm shadow-sm outline-none transition focus:border-[#c08b65]"
+                    />
+                    {prefectureOpen ? (
+                      <div className="absolute z-10 mt-2 w-full rounded-xl border border-[#eadbcf] bg-white p-2 text-xs shadow-lg">
+                        {filteredPrefectures.length === 0 ? (
+                          <p className="px-2 py-2 text-[#6b5a4b]">該当なし</p>
+                        ) : (
+                          <ul className="max-h-48 overflow-y-auto">
+                            {filteredPrefectures.map((prefecture) => (
+                              <li key={prefecture.code}>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    selectPrefecture(
+                                      prefecture.code,
+                                      prefecture.name
+                                    )
+                                  }
+                                  className="w-full rounded-lg px-2 py-2 text-left text-[#4d3f34] hover:bg-[#f3e8dd]"
+                                >
+                                  {prefecture.name}
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    ) : null}
+                    {areaPrefCode ? (
+                      <p className="mt-2 text-[11px] text-[#6b5a4b]">
+                        選択中:{" "}
+                        {PREFECTURES.find((pref) => pref.code === areaPrefCode)
+                          ?.name ?? ""}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+                  <div className="relative">
+                  <label className="text-xs font-semibold text-[#6b5a4b]">
+                    市区町村
+                  </label>
+                    <input
+                      value={municipalityQuery}
+                      onChange={(event) => {
+                      setMunicipalityQuery(event.target.value);
+                      setMunicipalityName("");
+                      if (!municipalityOpen) {
+                        setMunicipalityOpen(true);
+                      }
+                    }}
+                      onFocus={() => setMunicipalityOpen(true)}
+                      onBlur={() => {
+                        window.setTimeout(() => setMunicipalityOpen(false), 150);
+                      }}
+                    placeholder={
+                      areaPrefCode ? "市区町村を検索" : "都道府県を先に選択"
+                    }
+                      disabled={!areaPrefCode}
+                      className="mt-2 w-full rounded-xl border border-[#e2d6c9] bg-white px-3 py-3 text-sm shadow-sm outline-none transition focus:border-[#c08b65] disabled:bg-[#f2ebe4]"
+                    />
+                  {municipalityOpen && areaPrefCode ? (
+                    <div className="absolute z-10 mt-2 w-full rounded-xl border border-[#eadbcf] bg-white p-2 text-xs shadow-lg">
+                      {municipalityOptions.length === 0 ? (
+                        <p className="px-2 py-2 text-[#6b5a4b]">
+                          {municipalityLoading ? "読み込み中..." : "該当なし"}
+                        </p>
+                      ) : (
+                        <ul
+                          className="max-h-48 overflow-y-auto"
+                          onScroll={handleMunicipalityScroll}
+                        >
+                          {municipalityOptions.map((option) => (
+                            <li key={option.id}>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setMunicipalityName(option.name);
+                                  setMunicipalityQuery(option.name);
+                                  setMunicipalityOpen(false);
+                                }}
+                                className="w-full rounded-lg px-2 py-2 text-left text-[#4d3f34] hover:bg-[#f3e8dd]"
+                              >
+                                {option.name}
+                              </button>
+                            </li>
+                          ))}
+                          {municipalityHasMore || municipalityLoading ? (
+                            <li className="px-2 py-2 text-center text-[11px] text-[#6b5a4b]">
+                              {municipalityLoading ? "読み込み中..." : "さらに読み込み"}
+                            </li>
+                          ) : null}
+                        </ul>
+                      )}
+                    </div>
+                  ) : null}
+                  {municipalityName ? (
+                    <p className="mt-2 text-[11px] text-[#6b5a4b]">
+                      選択中: {municipalityName}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+            </div>
           </div>
           <div>
             <label className="text-sm font-medium">メモ（任意）</label>
