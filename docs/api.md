@@ -22,6 +22,13 @@
 ## 投票締切
 - `POST /api/events/{publicId}/lock` 投票締切/解除（幹事のみ）
 
+## 市区町村検索
+- `GET /api/municipalities?pref=13&q=しん&limit=30&offset=0` 市区町村検索
+  - `pref` は都道府県コード（例: `13`）
+  - `q` は検索文字列（未入力でも可）
+  - `limit` / `offset` はページング
+  - レスポンス: `{ municipalities: [{ id, name }], nextOffset }`
+
 ## 日程確定
 - `POST /api/events/{publicId}/schedule` 日程確定（幹事のみ）
 - `DELETE /api/events/{publicId}/schedule` 日程確定の取り消し（幹事のみ）

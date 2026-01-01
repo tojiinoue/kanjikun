@@ -13,6 +13,14 @@
 2. `Deployments` から Redeploy または新規デプロイ
 3. デプロイ完了後に動作確認（ログイン/イベント作成/投票）
 
+## 市区町村データの更新
+e-Stat の CSV を更新した場合は、変換と seed を実行する。
+
+```bash
+npm run municipalities:convert
+npx prisma db seed
+```
+
 ## ロールバック
 - Vercel の `Deployments` から過去のデプロイを `Promote to Production`
 

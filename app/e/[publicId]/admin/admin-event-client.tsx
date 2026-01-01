@@ -137,6 +137,8 @@ export default function AdminEventClient({ publicId }: Props) {
   const [timeValue, setTimeValue] = useState("19:00");
   const [showCandidateEditor, setShowCandidateEditor] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [scheduleQuery, setScheduleQuery] = useState("");
+  const [scheduleOpen, setScheduleOpen] = useState(false);
 
   useEffect(() => {
     setClientId(getOrCreateClientId());
@@ -148,6 +150,17 @@ export default function AdminEventClient({ publicId }: Props) {
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
       date.getDate()
     )}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  }
+
+  function formatCandidateLabel(candidate: CandidateDate) {
+    const date = new Date(candidate.startsAt);
+    return date.toLocaleString("ja-JP", {
+      month: "numeric",
+      day: "numeric",
+      weekday: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   }
 
   async function loadEvent(preserveScroll = false) {
@@ -177,6 +190,14 @@ export default function AdminEventClient({ publicId }: Props) {
       );
     }
     setSelectedCandidateId(data.confirmedCandidateDateId ?? "");
+    if (data.confirmedCandidateDateId) {
+      const matched = data.candidateDates.find(
+        (candidate) => candidate.id === data.confirmedCandidateDateId
+      );
+      setScheduleQuery(matched ? formatCandidateLabel(matched) : "");
+    } else {
+      setScheduleQuery("");
+    }
     setCandidateDrafts(
       data.candidateDates.map((candidate) => ({
         id: candidate.id,
@@ -358,6 +379,14 @@ export default function AdminEventClient({ publicId }: Props) {
   }, [event]);
   const scheduleConfirmed = event?.scheduleStatus === "CONFIRMED";
   const accountingConfirmed = event?.accountingStatus === "CONFIRMED";
+  const filteredScheduleCandidates = useMemo(() => {
+    if (!event) return [];
+    const query = scheduleQuery.trim();
+    if (!query) return event.candidateDates;
+    return event.candidateDates.filter((candidate) =>
+      formatCandidateLabel(candidate).includes(query)
+    );
+  }, [event, scheduleQuery]);
 
   function updateCandidateDraft(index: number, value: string) {
     setCandidateDrafts((prev) =>
@@ -961,14 +990,14 @@ export default function AdminEventClient({ publicId }: Props) {
             {event.votingLocked ? (
               <button
                 onClick={() => toggleVotingLock(false)}
-                className="rounded-full border border-[#1f1b16] px-4 py-2 text-xs font-semibold text-[#1f1b16]"
+                className="rounded-full border border-[#1f1b16] px-4 py-2 text-xs font-semibold text-[#1f1b16] transition active:scale-95"
               >
                 締切を解除
               </button>
             ) : (
               <button
                 onClick={() => toggleVotingLock(true)}
-                className="rounded-full bg-[#1f1b16] px-4 py-2 text-xs font-semibold text-white"
+                className="rounded-full bg-[#1f1b16] px-4 py-2 text-xs font-semibold text-white transition active:scale-95"
               >
                 締切にする
               </button>
@@ -1172,23 +1201,53 @@ export default function AdminEventClient({ publicId }: Props) {
               : "未確定"}
           </p>
           <div className="mt-4 space-y-3">
-            <select
-              value={selectedCandidateId}
-              onChange={(event) => setSelectedCandidateId(event.target.value)}
-              disabled={scheduleConfirmed}
-              className="w-full rounded-xl border border-[#e2d6c9] px-4 py-3 text-sm"
-            >
-              <option value="">候補日を選択</option>
-              {event.candidateDates.map((candidate) => (
-                <option key={candidate.id} value={candidate.id}>
-                  {new Date(candidate.startsAt).toLocaleString("ja-JP")}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <input
+                value={scheduleQuery}
+                onChange={(eventInput) => {
+                  setScheduleQuery(eventInput.target.value);
+                  if (!scheduleOpen) {
+                    setScheduleOpen(true);
+                  }
+                }}
+                onFocus={() => setScheduleOpen(true)}
+                onBlur={() => {
+                  window.setTimeout(() => setScheduleOpen(false), 150);
+                }}
+                placeholder="候補日を検索"
+                disabled={scheduleConfirmed}
+                className="w-full rounded-xl border border-[#e2d6c9] px-4 py-3 text-sm shadow-sm disabled:bg-[#f2ebe4]"
+              />
+              {scheduleOpen && !scheduleConfirmed ? (
+                <div className="absolute z-10 mt-2 w-full rounded-xl border border-[#eadbcf] bg-white p-2 text-xs shadow-lg">
+                  {filteredScheduleCandidates.length === 0 ? (
+                    <p className="px-2 py-2 text-[#6b5a4b]">該当なし</p>
+                  ) : (
+                    <ul className="max-h-48 overflow-y-auto">
+                      {filteredScheduleCandidates.map((candidate) => (
+                        <li key={candidate.id}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedCandidateId(candidate.id);
+                              setScheduleQuery(formatCandidateLabel(candidate));
+                              setScheduleOpen(false);
+                            }}
+                            className="w-full rounded-lg px-2 py-2 text-left text-[#4d3f34] hover:bg-[#f3e8dd]"
+                          >
+                            {formatCandidateLabel(candidate)}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ) : null}
+            </div>
             {scheduleConfirmed ? (
               <button
                 onClick={cancelSchedule}
-                className="rounded-full border border-[#1f1b16] px-4 py-2 text-xs font-semibold text-[#1f1b16]"
+                className="rounded-full border border-[#1f1b16] px-4 py-2 text-xs font-semibold text-[#1f1b16] transition active:scale-95"
               >
                 日程確定を取り消す
               </button>
@@ -1196,7 +1255,7 @@ export default function AdminEventClient({ publicId }: Props) {
               <button
                 onClick={confirmSchedule}
                 disabled={!selectedCandidateId}
-                className="rounded-full bg-[#1f1b16] px-4 py-2 text-xs font-semibold text-white disabled:opacity-60"
+                className="rounded-full bg-[#1f1b16] px-4 py-2 text-xs font-semibold text-white transition active:scale-95 disabled:opacity-60"
               >
                 日程を確定する
               </button>
