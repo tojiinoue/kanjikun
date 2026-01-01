@@ -12,9 +12,10 @@ type EmailPayload = {
   to: string;
   subject: string;
   text: string;
+  html?: string;
 };
 
-export async function sendEmail({ to, subject, text }: EmailPayload) {
+export async function sendEmail({ to, subject, text, html }: EmailPayload) {
   if (process.env.NODE_ENV !== "production") {
     console.info("[mailer] skipped in non-production", { to, subject });
     return;
@@ -31,6 +32,7 @@ export async function sendEmail({ to, subject, text }: EmailPayload) {
       Subject: { Data: subject },
       Body: {
         Text: { Data: text },
+        ...(html ? { Html: { Data: html } } : {}),
       },
     },
     Source: from,

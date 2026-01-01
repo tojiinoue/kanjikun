@@ -15,6 +15,15 @@ npx prisma migrate deploy
 npm run prisma:generate
 ```
 
+## 市区町村データの投入
+e-Stat から CSV を取得し、JSON に変換して seed します。
+
+```bash
+# data/municipalities.csv を配置してから実行
+npm run municipalities:convert
+npx prisma db seed
+```
+
 ## 注意
 - `DATABASE_URL` は **Vercel に設定している本番URLと一致**させる。
 - Schema変更時は **先にマイグレーション**を作成してからデプロイする。
