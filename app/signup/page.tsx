@@ -103,7 +103,7 @@ export default function SignupPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-full bg-[#1f1b16] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#3a312a] disabled:opacity-60"
+              className="w-full rounded-full bg-[#1f1b16] px-6 py-3 text-sm font-semibold text-white transition active:scale-95 hover:bg-[#3a312a] disabled:opacity-60"
             >
               {loading ? "作成中..." : "アカウント作成"}
             </button>

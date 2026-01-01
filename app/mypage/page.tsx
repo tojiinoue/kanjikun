@@ -56,7 +56,7 @@ export default async function MyPage() {
           </div>
           <Link
             href="/events/new"
-            className="w-full rounded-full bg-[#4a9d41] px-5 py-3 text-center text-sm font-semibold text-white shadow-sm sm:w-auto"
+            className="w-full rounded-full bg-[#4a9d41] px-5 py-3 text-center text-sm font-semibold text-white shadow-sm transition active:scale-95 sm:w-auto"
           >
             新しいイベントを作る
           </Link>
@@ -77,7 +77,7 @@ export default async function MyPage() {
                 <Link
                   key={event.id}
                   href={`/e/${event.publicId}/admin`}
-                  className="block rounded-2xl border border-[#e2d6c9] bg-white/90 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                  className="block rounded-2xl border border-[#e2d6c9] bg-white/90 shadow-sm transition active:scale-[0.99] active:bg-[#f7f2ed] hover:-translate-y-0.5 hover:shadow-md"
                 >
                   <div className="flex items-center justify-between rounded-t-2xl bg-[#4a9d41] px-5 py-3 text-xs text-white">
                     <span className="rounded-full bg-white/20 px-3 py-1">

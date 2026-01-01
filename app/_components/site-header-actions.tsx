@@ -12,7 +12,7 @@ export default function HeaderActions({ isLoggedIn }: Props) {
     return (
       <Link
         href="/login"
-        className="rounded-full border border-[#1f1b16] px-4 py-2 text-xs font-semibold text-[#1f1b16] transition hover:bg-[#f3e8dd]"
+        className="rounded-full border border-[#1f1b16] px-4 py-2 text-xs font-semibold text-[#1f1b16] transition active:scale-95 hover:bg-[#f3e8dd]"
       >
         ログイン
       </Link>
@@ -23,14 +23,14 @@ export default function HeaderActions({ isLoggedIn }: Props) {
     <div className="flex flex-wrap items-center gap-2">
       <Link
         href="/mypage"
-        className="rounded-full border border-[#1f1b16] px-4 py-2 text-xs font-semibold text-[#1f1b16] transition hover:bg-[#f3e8dd]"
+        className="rounded-full border border-[#1f1b16] px-4 py-2 text-xs font-semibold text-[#1f1b16] transition active:scale-95 hover:bg-[#f3e8dd]"
       >
         マイページ
       </Link>
       <button
         type="button"
         onClick={() => signOut({ callbackUrl: "/" })}
-        className="rounded-full border border-[#1f1b16] px-4 py-2 text-xs font-semibold text-[#1f1b16] transition hover:bg-[#f3e8dd]"
+        className="rounded-full border border-[#1f1b16] px-4 py-2 text-xs font-semibold text-[#1f1b16] transition active:scale-95 hover:bg-[#f3e8dd]"
       >
         ログアウト
       </button>

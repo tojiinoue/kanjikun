@@ -106,6 +106,7 @@ export default function AdminEventClient({ publicId }: Props) {
     Array<{ id?: string; startsAt: string }>
   >([]);
   const [candidateError, setCandidateError] = useState<string | null>(null);
+  const [savingCandidates, setSavingCandidates] = useState(false);
   const [accountingError, setAccountingError] = useState<string | null>(null);
   const [bulkInput, setBulkInput] = useState("");
   const [calendarMonth, setCalendarMonth] = useState(() => new Date());
@@ -310,10 +311,13 @@ export default function AdminEventClient({ publicId }: Props) {
   })();
 
   async function saveCandidates() {
+    if (savingCandidates) return;
     setCandidateError(null);
+    setSavingCandidates(true);
     const candidates = candidateDrafts.filter((candidate) => candidate.startsAt);
     if (candidates.length === 0) {
       setCandidateError("候補日を1つ以上入力してください。");
+      setSavingCandidates(false);
       return;
     }
     const response = await fetch(`/api/events/${publicId}/candidates`, {
@@ -342,8 +346,11 @@ export default function AdminEventClient({ publicId }: Props) {
         // JSONでない場合は既定メッセージ
       }
       setCandidateError(message);
+      setSavingCandidates(false);
       return;
     }
+    setSavingCandidates(false);
+    setShowCandidateEditor(false);
     await loadEvent(true);
   }
 
@@ -357,6 +364,7 @@ export default function AdminEventClient({ publicId }: Props) {
     );
     setCandidateError(null);
     setBulkInput("");
+    setShowCandidateEditor(false);
   }
 
   async function toggleVotingLock(locked: boolean) {
@@ -585,14 +593,14 @@ export default function AdminEventClient({ publicId }: Props) {
                 <button
                   type="button"
                   onClick={saveEventDetails}
-                  className="rounded-full bg-[#1f1b16] px-4 py-2 text-xs font-semibold text-white"
+                  className="rounded-full bg-[#1f1b16] px-4 py-2 text-xs font-semibold text-white transition active:scale-95"
                 >
                   変更を保存
                 </button>
                 <button
                   type="button"
                   onClick={cancelEventEdit}
-                  className="rounded-full border border-[#1f1b16] px-4 py-2 text-xs font-semibold text-[#1f1b16]"
+                  className="rounded-full border border-[#1f1b16] px-4 py-2 text-xs font-semibold text-[#1f1b16] transition active:scale-95"
                 >
                   キャンセル
                 </button>
@@ -844,22 +852,22 @@ export default function AdminEventClient({ publicId }: Props) {
               <p className="mt-2 text-xs text-[#a34c3d]">{candidateError}</p>
             ) : null}
             <div className="mt-4 flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={saveCandidates}
-                disabled={scheduleConfirmed}
-                className="rounded-full bg-[#1f1b16] px-4 py-2 text-xs font-semibold text-white disabled:opacity-40"
-              >
-                候補日を保存
-              </button>
-              <button
-                type="button"
-                onClick={cancelCandidateEdits}
-                disabled={scheduleConfirmed}
-                className="rounded-full border border-[#1f1b16] px-4 py-2 text-xs font-semibold text-[#1f1b16] disabled:opacity-40"
-              >
-                編集をキャンセル
-              </button>
+                <button
+                  type="button"
+                  onClick={saveCandidates}
+                  disabled={scheduleConfirmed || savingCandidates}
+                  className="rounded-full bg-[#1f1b16] px-4 py-2 text-xs font-semibold text-white transition active:scale-95 disabled:opacity-40"
+                >
+                  {savingCandidates ? "保存中..." : "候補日を保存"}
+                </button>
+                <button
+                  type="button"
+                  onClick={cancelCandidateEdits}
+                  disabled={scheduleConfirmed}
+                  className="rounded-full border border-[#1f1b16] px-4 py-2 text-xs font-semibold text-[#1f1b16] transition active:scale-95 disabled:opacity-40"
+                >
+                  編集をキャンセル
+                </button>
             </div>
           </div>
           ) : null}
