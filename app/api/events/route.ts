@@ -11,6 +11,8 @@ type CandidateInput = {
 type CreateEventPayload = {
   name?: string;
   memo?: string | null;
+  areaPrefCode?: string | null;
+  areaMunicipalityName?: string | null;
   candidates?: CandidateInput[];
   ownerClientId?: string | null;
 };
@@ -24,6 +26,8 @@ export async function POST(request: Request) {
   const body = (await request.json()) as CreateEventPayload;
   const name = body.name?.trim();
   const memo = body.memo?.trim() || null;
+  const areaPrefCode = body.areaPrefCode?.trim() || null;
+  const areaMunicipalityName = body.areaMunicipalityName?.trim() || null;
   const candidates = body.candidates ?? [];
   const ownerClientId = body.ownerClientId?.trim() || null;
 
@@ -35,6 +39,8 @@ export async function POST(request: Request) {
     data: {
       name,
       memo,
+      areaPrefCode,
+      areaMunicipalityName,
       publicId: randomUUID(),
       ownerUserId: session.user.id,
       ownerClientId,
@@ -55,6 +61,8 @@ export async function POST(request: Request) {
       publicId: event.publicId,
       name: event.name,
       memo: event.memo,
+      areaPrefCode: event.areaPrefCode,
+      areaMunicipalityName: event.areaMunicipalityName,
       candidateDates: event.candidateDates,
     },
     { status: 201 }

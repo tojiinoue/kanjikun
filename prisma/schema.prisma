@@ -46,6 +46,8 @@ model Event {
   publicId                 String           @unique
   name                     String
   memo                     String?
+  areaPrefCode             String?
+  areaMunicipalityName     String?
   ownerUserId              String?
   ownerClientId            String?
   votingLocked             Boolean          @default(false)
@@ -65,6 +67,19 @@ model Event {
   confirmedCandidateDate CandidateDate? @relation("ConfirmedDate", fields: [confirmedCandidateDateId], references: [id])
 
   @@index([ownerUserId])
+}
+
+model Municipality {
+  id        String   @id @default(cuid())
+  prefCode  String
+  name      String
+  municipalityCode String?
+  nameKana  String?
+  sortOrder Int?
+  createdAt DateTime @default(now())
+
+  @@index([prefCode, name])
+  @@index([prefCode])
 }
 
 model CandidateDate {

@@ -36,6 +36,8 @@ export async function GET(_: Request, { params }: Params) {
     publicId: event.publicId,
     name: event.name,
     memo: event.memo,
+    areaPrefCode: event.areaPrefCode,
+    areaMunicipalityName: event.areaMunicipalityName,
     votingLocked: event.votingLocked,
     scheduleStatus: event.scheduleStatus,
     confirmedCandidateDateId: event.confirmedCandidateDateId,
@@ -53,6 +55,8 @@ export async function GET(_: Request, { params }: Params) {
 type UpdatePayload = {
   name?: string;
   memo?: string | null;
+  areaPrefCode?: string | null;
+  areaMunicipalityName?: string | null;
   ownerClientId?: string | null;
 };
 
@@ -61,6 +65,8 @@ export async function PATCH(request: Request, { params }: Params) {
   const body = (await request.json()) as UpdatePayload;
   const name = body.name?.trim();
   const memo = body.memo?.trim() || null;
+  const areaPrefCode = body.areaPrefCode?.trim() || null;
+  const areaMunicipalityName = body.areaMunicipalityName?.trim() || null;
 
   if (!name) {
     return NextResponse.json({ error: "Invalid input" }, { status: 400 });
@@ -85,6 +91,8 @@ export async function PATCH(request: Request, { params }: Params) {
     data: {
       name,
       memo,
+      areaPrefCode,
+      areaMunicipalityName,
     },
   });
 
@@ -92,5 +100,7 @@ export async function PATCH(request: Request, { params }: Params) {
     publicId: updated.publicId,
     name: updated.name,
     memo: updated.memo,
+    areaPrefCode: updated.areaPrefCode,
+    areaMunicipalityName: updated.areaMunicipalityName,
   });
 }
