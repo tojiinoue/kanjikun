@@ -41,6 +41,13 @@ type Props = {
   publicId: string;
 };
 
+function toIsoFromLocal(value: string) {
+  const [datePart, timePart] = value.split("T");
+  const [year, month, day] = datePart.split("-").map(Number);
+  const [hour, minute] = timePart.split(":").map(Number);
+  return new Date(year, month - 1, day, hour || 0, minute || 0).toISOString();
+}
+
 function getOrCreateClientId() {
   if (typeof window === "undefined") {
     return "";
@@ -313,12 +320,28 @@ export default function AdminEventClient({ publicId }: Props) {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        candidates,
+        candidates: candidates.map((candidate) => ({
+          id: candidate.id,
+          startsAt: toIsoFromLocal(candidate.startsAt),
+        })),
         ownerClientId: clientId,
       }),
     });
     if (!response.ok) {
-      setCandidateError("候補日の保存に失敗しました。");
+      let message = "候補日の保存に失敗しました。";
+      try {
+        const payload = (await response.json()) as { error?: string };
+        if (payload.error === "Forbidden") {
+          message = "権限がないため候補日を保存できません。";
+        } else if (payload.error === "Schedule locked") {
+          message = "日程確定後は候補日を編集できません。";
+        } else if (payload.error === "Invalid input") {
+          message = "候補日を1つ以上入力してください。";
+        }
+      } catch {
+        // JSONでない場合は既定メッセージ
+      }
+      setCandidateError(message);
       return;
     }
     await loadEvent(true);
