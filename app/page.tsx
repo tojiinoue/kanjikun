@@ -1,4 +1,21 @@
+import type { Metadata } from "next";
+
 import { getServerAuthSession } from "@/lib/session";
+
+export const metadata: Metadata = {
+  title: "幹事の飲み会管理サービス",
+  description:
+    "日程調整、出欠、会計、支払申請までを一気通貫で管理。幹事の“やり残し”をなくすための飲み会管理ツール。",
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: "幹事の飲み会管理サービス",
+    description:
+      "日程調整、出欠、会計、支払申請までを一気通貫で管理。幹事の“やり残し”をなくすための飲み会管理ツール。",
+    url: "/",
+  },
+};
 
 export default async function Home() {
   const session = await getServerAuthSession();

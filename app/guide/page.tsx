@@ -1,4 +1,20 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "使い方ガイド",
+  description:
+    "幹事くんの使い方を5ステップで紹介。日程調整から支払承認までの流れをわかりやすくまとめています。",
+  alternates: {
+    canonical: "/guide",
+  },
+  openGraph: {
+    title: "使い方ガイド",
+    description:
+      "幹事くんの使い方を5ステップで紹介。日程調整から支払承認までの流れをわかりやすくまとめています。",
+    url: "/guide",
+  },
+};
 
 const steps = [
   {
