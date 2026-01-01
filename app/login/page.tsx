@@ -70,7 +70,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-full bg-[#1f1b16] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#3a312a] disabled:opacity-60"
+              className="w-full rounded-full bg-[#1f1b16] px-6 py-3 text-sm font-semibold text-white transition active:scale-95 hover:bg-[#3a312a] disabled:opacity-60"
             >
               {loading ? "ログイン中..." : "ログイン"}
             </button>
@@ -84,7 +84,7 @@ export default function LoginPage() {
 
           <button
             onClick={() => signIn("google", { callbackUrl: "/events/new" })}
-            className="w-full rounded-full border border-[#1f1b16] px-6 py-3 text-sm font-semibold text-[#1f1b16] transition hover:bg-[#f3e8dd]"
+            className="w-full rounded-full border border-[#1f1b16] px-6 py-3 text-sm font-semibold text-[#1f1b16] transition active:scale-95 hover:bg-[#f3e8dd]"
           >
             Googleでログイン
           </button>

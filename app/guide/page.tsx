@@ -40,13 +40,13 @@ export default function GuidePage() {
           <div className="mt-5 flex flex-col gap-3 sm:flex-row">
             <Link
               href="/events/new"
-              className="w-full rounded-full bg-[#1f1b16] px-6 py-3 text-center text-sm font-semibold text-white transition hover:bg-[#3a312a] sm:w-auto"
+              className="w-full rounded-full bg-[#1f1b16] px-6 py-3 text-center text-sm font-semibold text-white transition active:scale-95 hover:bg-[#3a312a] sm:w-auto"
             >
               イベントを作成する
             </Link>
             <Link
               href="/"
-              className="w-full rounded-full border border-[#1f1b16] px-6 py-3 text-center text-sm font-semibold text-[#1f1b16] transition hover:bg-[#f3e8dd] sm:w-auto"
+              className="w-full rounded-full border border-[#1f1b16] px-6 py-3 text-center text-sm font-semibold text-[#1f1b16] transition active:scale-95 hover:bg-[#f3e8dd] sm:w-auto"
             >
               トップへ戻る
             </Link>

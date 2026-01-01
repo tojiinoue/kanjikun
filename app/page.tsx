@@ -28,7 +28,7 @@ export default async function Home() {
               {isLoggedIn ? (
                 <a
                   href="/events/new"
-                  className="w-full rounded-full bg-[#1f1b16] px-6 py-3 text-center text-sm font-semibold text-white transition hover:bg-[#3a312a] sm:w-auto"
+                  className="w-full rounded-full bg-[#1f1b16] px-6 py-3 text-center text-sm font-semibold text-white transition active:scale-95 hover:bg-[#3a312a] sm:w-auto"
                 >
                   イベントを作成する
                 </a>
@@ -36,13 +36,13 @@ export default async function Home() {
                 <>
                   <a
                     href="/login"
-                    className="w-full rounded-full bg-[#1f1b16] px-6 py-3 text-center text-sm font-semibold text-white transition hover:bg-[#3a312a] sm:w-auto"
+                    className="w-full rounded-full bg-[#1f1b16] px-6 py-3 text-center text-sm font-semibold text-white transition active:scale-95 hover:bg-[#3a312a] sm:w-auto"
                   >
                     幹事ログイン
                   </a>
                   <a
                     href="/signup"
-                    className="w-full rounded-full border border-[#1f1b16] px-6 py-3 text-center text-sm font-semibold text-[#1f1b16] transition hover:bg-[#f3e8dd] sm:w-auto"
+                    className="w-full rounded-full border border-[#1f1b16] px-6 py-3 text-center text-sm font-semibold text-[#1f1b16] transition active:scale-95 hover:bg-[#f3e8dd] sm:w-auto"
                   >
                     アカウント作成
                   </a>
