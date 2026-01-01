@@ -7,6 +7,13 @@ type CandidateInput = {
   startsAt: string;
 };
 
+function toIsoFromLocal(value: string) {
+  const [datePart, timePart] = value.split("T");
+  const [year, month, day] = datePart.split("-").map(Number);
+  const [hour, minute] = timePart.split(":").map(Number);
+  return new Date(year, month - 1, day, hour || 0, minute || 0).toISOString();
+}
+
 function getOrCreateClientId() {
   if (typeof window === "undefined") {
     return "";
@@ -127,7 +134,9 @@ export default function NewEventClient() {
       name,
       memo,
       ownerClientId: clientId,
-      candidates: validCandidates,
+      candidates: validCandidates.map((candidate) => ({
+        startsAt: toIsoFromLocal(candidate.startsAt),
+      })),
     };
 
     const response = await fetch("/api/events", {
