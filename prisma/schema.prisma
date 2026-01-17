@@ -71,6 +71,7 @@ model Event {
   votes                 Vote[]
   attendances           Attendance[]
   payments              Payment[]
+  rounds                EventRound[]
   confirmedCandidateDate CandidateDate? @relation("ConfirmedDate", fields: [confirmedCandidateDateId], references: [id])
 
   @@index([ownerUserId])
@@ -128,24 +129,47 @@ model VoteChoice {
   @@unique([voteId, candidateDateId])
 }
 
+model EventRound {
+  id               String           @id @default(cuid())
+  eventId          String
+  order            Int
+  name             String
+  accountingStatus AccountingStatus @default(PENDING)
+  totalAmount      Int?
+  perPersonAmount  Int?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  event       Event        @relation(fields: [eventId], references: [id])
+  attendances Attendance[]
+  payments    Payment[]
+
+  @@unique([eventId, order])
+  @@index([eventId])
+}
+
 model Attendance {
   id        String           @id @default(cuid())
   eventId   String
+  roundId   String
   name      String
   isActual  Boolean          @default(false)
   source    AttendanceSource
   createdAt DateTime         @default(now())
   updatedAt DateTime         @updatedAt
 
-  event   Event   @relation(fields: [eventId], references: [id])
+  event   Event      @relation(fields: [eventId], references: [id])
+  round   EventRound @relation(fields: [roundId], references: [id])
   payment Payment?
 
   @@index([eventId])
+  @@index([roundId])
 }
 
 model Payment {
   id           String        @id @default(cuid())
   eventId      String
+  roundId      String
   attendanceId String        @unique
   amount       Int
   method       PaymentMethod?
@@ -156,9 +180,11 @@ model Payment {
   updatedAt    DateTime      @updatedAt
 
   event      Event      @relation(fields: [eventId], references: [id])
+  round      EventRound @relation(fields: [roundId], references: [id])
   attendance Attendance @relation(fields: [attendanceId], references: [id])
 
   @@index([eventId])
+  @@index([roundId])
 }
 
 model User {

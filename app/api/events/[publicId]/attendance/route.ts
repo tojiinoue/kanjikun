@@ -16,6 +16,7 @@ type AttendanceAddition = {
 type AttendancePayload = {
   updates?: AttendanceUpdate[];
   additions?: AttendanceAddition[];
+  roundId?: string;
   ownerClientId?: string | null;
 };
 
@@ -41,6 +42,21 @@ export async function POST(request: Request, { params }: Params) {
 
   const updates = body.updates ?? [];
   const additions = body.additions ?? [];
+  const roundId = body.roundId?.trim() ?? null;
+
+  if (additions.length > 0 && !roundId) {
+    return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+  }
+
+  if (roundId) {
+    const round = await prisma.eventRound.findFirst({
+      where: { id: roundId, eventId: event.id },
+      select: { id: true },
+    });
+    if (!round) {
+      return NextResponse.json({ error: "Invalid round" }, { status: 400 });
+    }
+  }
 
   await prisma.$transaction([
     ...updates.map((update) =>
@@ -55,6 +71,7 @@ export async function POST(request: Request, { params }: Params) {
         prisma.attendance.create({
           data: {
             eventId: event.id,
+            roundId: roundId as string,
             name: addition.name.trim(),
             source: AttendanceSource.MANUAL,
             isActual: true,

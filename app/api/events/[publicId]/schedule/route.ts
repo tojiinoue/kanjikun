@@ -57,6 +57,14 @@ export async function POST(request: Request, { params }: Params) {
     },
   });
 
+  const firstRound =
+    (await prisma.eventRound.findFirst({
+      where: { eventId: event.id, order: 1 },
+    })) ??
+    (await prisma.eventRound.create({
+      data: { eventId: event.id, order: 1, name: "1次会" },
+    }));
+
   const attendanceData = votes
     .filter((vote) =>
       vote.choices.some(
@@ -68,6 +76,7 @@ export async function POST(request: Request, { params }: Params) {
     )
     .map((vote) => ({
       eventId: event.id,
+      roundId: firstRound.id,
       name: vote.name,
       source: AttendanceSource.VOTE,
     }));
@@ -115,6 +124,14 @@ export async function DELETE(request: Request, { params }: Params) {
   await prisma.$transaction([
     prisma.payment.deleteMany({ where: { eventId: event.id } }),
     prisma.attendance.deleteMany({ where: { eventId: event.id } }),
+    prisma.eventRound.updateMany({
+      where: { eventId: event.id },
+      data: {
+        accountingStatus: AccountingStatus.PENDING,
+        totalAmount: null,
+        perPersonAmount: null,
+      },
+    }),
     prisma.event.update({
       where: { id: event.id },
       data: {

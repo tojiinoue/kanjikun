@@ -5,14 +5,14 @@ import { getServerAuthSession } from "@/lib/session";
 export const metadata: Metadata = {
   title: "幹事の飲み会管理サービス",
   description:
-    "日程調整、出欠、会計、支払申請までを一気通貫で管理。予約情報やPayPay IDの共有までカバーする幹事向けツール。",
+    "日程調整、出欠、会計、支払申請までを一気通貫で管理。2次会以降の回にも対応し、予約情報やPayPay IDの共有までカバーする幹事向けツール。",
   alternates: {
     canonical: "/",
   },
   openGraph: {
     title: "幹事の飲み会管理サービス",
     description:
-      "日程調整、出欠、会計、支払申請までを一気通貫で管理。予約情報やPayPay IDの共有までカバーする幹事向けツール。",
+      "日程調整、出欠、会計、支払申請までを一気通貫で管理。2次会以降の回にも対応し、予約情報やPayPay IDの共有までカバーする幹事向けツール。",
     url: "/",
   },
 };
@@ -39,7 +39,7 @@ export default async function Home() {
             </h1>
             <p className="mt-6 text-base leading-7 text-[#5e4c3d] sm:text-lg">
               日程調整から当日出席、会計、支払申請まで。
-              予約情報の共有やPayPay IDの案内も一緒に管理できます。
+              2次会以降の回もまとめて管理でき、予約情報の共有やPayPay IDの案内も一緒に行えます。
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               {isLoggedIn ? (
@@ -70,7 +70,7 @@ export default async function Home() {
               <div>
                 <p className="text-xs uppercase tracking-[0.2em]">流れ</p>
                 <p className="mt-2">
-                  投票 → 確定 → 予約情報 → 出席 → 会計 → 申請
+                  投票 → 確定 → 予約情報 → 回の追加 → 出席 → 会計 → 申請
                 </p>
               </div>
               <div>
@@ -103,9 +103,10 @@ export default async function Home() {
                 "投票を締切",
                 "日程を確定",
                 "予約情報を共有",
+                "2次会以降を追加",
                 "出席者を確定",
-                "会計を入力",
-                "支払申請を承認",
+                "会計を確定",
+                "合計で支払申請を承認",
               ].map((label, index) => (
                 <div
                   key={label}

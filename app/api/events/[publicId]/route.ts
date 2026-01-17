@@ -20,8 +20,13 @@ export async function GET(_: Request, { params }: Params) {
           choices: true,
         },
       },
-      attendances: true,
-      payments: true,
+      rounds: {
+        include: {
+          attendances: true,
+          payments: true,
+        },
+        orderBy: { order: "asc" },
+      },
       ownerUser: {
         select: { paypayId: true },
       },
@@ -56,8 +61,7 @@ export async function GET(_: Request, { params }: Params) {
     perPersonAmount: event.perPersonAmount,
     candidateDates: event.candidateDates,
     votes: event.votes,
-    attendances: event.attendances,
-    payments: event.payments,
+    rounds: event.rounds,
     ownerPaypayId: event.ownerUser?.paypayId ?? null,
     isOwnerUser,
   });
@@ -168,6 +172,7 @@ export async function DELETE(_: Request, { params }: Params) {
   await prisma.$transaction([
     prisma.payment.deleteMany({ where: { eventId: event.id } }),
     prisma.attendance.deleteMany({ where: { eventId: event.id } }),
+    prisma.eventRound.deleteMany({ where: { eventId: event.id } }),
     prisma.voteChoice.deleteMany({
       where: { vote: { eventId: event.id } },
     }),

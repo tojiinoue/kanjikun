@@ -26,14 +26,27 @@ type Attendance = {
   id: string;
   name: string;
   isActual: boolean;
+  roundId: string;
 };
 
 type Payment = {
   id: string;
   attendanceId: string;
+  roundId: string;
   amount: number;
   method: "CASH" | "PAYPAY" | "TRANSFER" | "OTHER" | null;
   status: "UNSUBMITTED" | "PENDING" | "APPROVED";
+};
+
+type EventRound = {
+  id: string;
+  order: number;
+  name: string;
+  accountingStatus: "PENDING" | "CONFIRMED";
+  totalAmount?: number | null;
+  perPersonAmount?: number | null;
+  attendances: Attendance[];
+  payments: Payment[];
 };
 
 type EventResponse = {
@@ -55,8 +68,7 @@ type EventResponse = {
   accountingStatus: "PENDING" | "CONFIRMED";
   candidateDates: CandidateDate[];
   votes: Vote[];
-  attendances: Attendance[];
-  payments: Payment[];
+  rounds: EventRound[];
   isOwnerUser: boolean;
   ownerPaypayId?: string | null;
 };
@@ -222,6 +234,114 @@ function getOrCreateClientId() {
       return a.name.localeCompare(b.name);
     });
   }, [voteList]);
+  const attendeeGroups = useMemo(() => {
+    if (!event) return [];
+    const groups = new Map<
+      string,
+      {
+        name: string;
+        attendances: Array<
+          Attendance & { roundName: string; roundOrder: number; roundStatus: EventRound["accountingStatus"] }
+        >;
+      }
+    >();
+    event.rounds.forEach((round) => {
+      round.attendances.forEach((attendance) => {
+        const existing =
+          groups.get(attendance.name) ?? { name: attendance.name, attendances: [] };
+        existing.attendances.push({
+          ...attendance,
+          roundName: round.name,
+          roundOrder: round.order,
+          roundStatus: round.accountingStatus,
+        });
+        groups.set(attendance.name, existing);
+      });
+    });
+    return Array.from(groups.values()).sort((a, b) =>
+      a.name.localeCompare(b.name)
+    );
+  }, [event]);
+  const paymentSummaries = useMemo(() => {
+    if (!event) return new Map<string, {
+      totalAmount: number;
+      status: Payment["status"];
+      method: Payment["method"];
+      breakdown: Array<{ roundName: string; amount: number; roundOrder: number }>;
+    }>();
+    const attendanceMeta = new Map<
+      string,
+      { name: string; roundName: string; roundOrder: number }
+    >();
+    event.rounds.forEach((round) => {
+      round.attendances.forEach((attendance) => {
+        attendanceMeta.set(attendance.id, {
+          name: attendance.name,
+          roundName: round.name,
+          roundOrder: round.order,
+        });
+      });
+    });
+    const summaries = new Map<
+      string,
+      {
+        totalAmount: number;
+        statuses: Payment["status"][];
+        methods: Payment["method"][];
+        breakdown: Array<{ roundName: string; amount: number; roundOrder: number }>;
+      }
+    >();
+    event.rounds.forEach((round) => {
+      round.payments.forEach((payment) => {
+        const meta = attendanceMeta.get(payment.attendanceId);
+        if (!meta) return;
+        const existing =
+          summaries.get(meta.name) ??
+          {
+            totalAmount: 0,
+            statuses: [],
+            methods: [],
+            breakdown: [],
+          };
+        existing.totalAmount += payment.amount;
+        existing.statuses.push(payment.status);
+        if (payment.method) {
+          existing.methods.push(payment.method);
+        }
+        existing.breakdown.push({
+          roundName: meta.roundName,
+          amount: payment.amount,
+          roundOrder: meta.roundOrder,
+        });
+        summaries.set(meta.name, existing);
+      });
+    });
+    const result = new Map<
+      string,
+      {
+        totalAmount: number;
+        status: Payment["status"];
+        method: Payment["method"];
+        breakdown: Array<{ roundName: string; amount: number; roundOrder: number }>;
+      }
+    >();
+    summaries.forEach((summary, name) => {
+      const status = summary.statuses.includes("APPROVED")
+        ? "APPROVED"
+        : summary.statuses.includes("PENDING")
+          ? "PENDING"
+          : "UNSUBMITTED";
+      result.set(name, {
+        totalAmount: summary.totalAmount,
+        status,
+        method: summary.methods[0] ?? null,
+        breakdown: [...summary.breakdown].sort(
+          (a, b) => a.roundOrder - b.roundOrder
+        ),
+      });
+    });
+    return result;
+  }, [event]);
   const topYesCount = useMemo(() => {
     if (!event) return 0;
     if (sortedVotes.length === 0 || sortedCandidates.length === 0) return 0;
@@ -319,44 +439,44 @@ function getOrCreateClientId() {
     await loadEvent();
   }
 
-  async function applyPayment(attendanceId: string) {
+  async function applyPayment(attendeeName: string) {
     if (!event) return;
-    const method = paymentMethods[attendanceId];
+    const method = paymentMethods[attendeeName];
     if (!method) {
       setError("支払方法を選択してください。");
       return;
     }
-    setApplyingPaymentIds((prev) => ({ ...prev, [attendanceId]: true }));
+    setApplyingPaymentIds((prev) => ({ ...prev, [attendeeName]: true }));
     const response = await fetch(`/api/events/${publicId}/payments/apply`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ attendanceId, method }),
+      body: JSON.stringify({ attendeeName, method }),
     });
     if (!response.ok) {
       setError("支払申請に失敗しました。");
-      setApplyingPaymentIds((prev) => ({ ...prev, [attendanceId]: false }));
+      setApplyingPaymentIds((prev) => ({ ...prev, [attendeeName]: false }));
       return;
     }
     await loadEvent(true);
-    setApplyingPaymentIds((prev) => ({ ...prev, [attendanceId]: false }));
+    setApplyingPaymentIds((prev) => ({ ...prev, [attendeeName]: false }));
   }
 
-  async function cancelPayment(attendanceId: string) {
+  async function cancelPayment(attendeeName: string) {
     const ok = window.confirm("支払申請を取り消しますか？");
     if (!ok) return;
-    setCancelingPaymentIds((prev) => ({ ...prev, [attendanceId]: true }));
+    setCancelingPaymentIds((prev) => ({ ...prev, [attendeeName]: true }));
     const response = await fetch(`/api/events/${publicId}/payments/cancel`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ attendanceId }),
+      body: JSON.stringify({ attendeeName }),
     });
     if (!response.ok) {
       setError("支払申請の取消に失敗しました。");
-      setCancelingPaymentIds((prev) => ({ ...prev, [attendanceId]: false }));
+      setCancelingPaymentIds((prev) => ({ ...prev, [attendeeName]: false }));
       return;
     }
     await loadEvent(true);
-    setCancelingPaymentIds((prev) => ({ ...prev, [attendanceId]: false }));
+    setCancelingPaymentIds((prev) => ({ ...prev, [attendeeName]: false }));
   }
 
   if (loading) {
@@ -542,44 +662,94 @@ function getOrCreateClientId() {
                 <p>PayPayで支払う方はこちらのIDに送金してください。</p>
               </div>
             ) : null}
-            <div className="mt-4 grid gap-2 text-sm">
-              {event.attendances.length === 0 ? (
+            <div className="mt-4 space-y-4 text-sm">
+              {event.rounds.length === 0 ? (
                 <p className="text-[#6b5a4b]">
-                  まだ出席者が確定していません。
+                  回がまだ追加されていません。
                 </p>
               ) : (
-                event.attendances.map((attendance) => {
-                  const payment = event.payments.find(
-                    (item) => item.attendanceId === attendance.id
-                  );
-                  const canApply =
-                    attendance.isActual && event.accountingStatus === "CONFIRMED";
-                  return (
-                    <div
-                      key={attendance.id}
-                      className="rounded-2xl border border-[#eadbcf] bg-white px-4 py-3"
-                    >
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-                        <span>{attendance.name}</span>
-                        <span className="text-xs text-[#7a6453]">
-                          {attendance.isActual ? "実出席" : "未確定"}
-                        </span>
-                      </div>
-                      {canApply ? (
-                        <div className="mt-3 flex flex-wrap items-center gap-3 text-xs">
-                          {payment ? (
-                            <>
-                              <span className="text-[#6b5a4b]">
-                                {payment.amount}円 / {formatPaymentStatus(payment.status)}
-                              </span>
-                              {payment.status === "UNSUBMITTED" ? (
+                event.rounds.map((round) => (
+                  <div key={round.id} className="space-y-2">
+                    <h3 className="text-sm font-semibold text-[#4d3f34]">
+                      {round.name}
+                    </h3>
+                    {round.attendances.length === 0 ? (
+                      <p className="text-xs text-[#6b5a4b]">
+                        出席者がまだ確定していません。
+                      </p>
+                    ) : (
+                      round.attendances.map((attendance) => (
+                        <div
+                          key={attendance.id}
+                          className="rounded-2xl border border-[#eadbcf] bg-white px-4 py-2"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span>{attendance.name}</span>
+                            <span className="text-xs text-[#7a6453]">
+                              {attendance.isActual ? "実出席" : "未確定"}
+                            </span>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="mt-6 border-t border-[#eadbcf] pt-4">
+              <h3 className="text-sm font-semibold text-[#4d3f34]">支払申請</h3>
+              <div className="mt-3 space-y-2 text-xs">
+                {attendeeGroups.length === 0 ? (
+                  <p className="text-[#6b5a4b]">
+                    支払対象の出席者がいません。
+                  </p>
+                ) : (
+                  attendeeGroups
+                    .filter((group) =>
+                      group.attendances.some((attendance) => attendance.isActual)
+                    )
+                    .map((group) => {
+                      const summary = paymentSummaries.get(group.name);
+                      const actualAttendances = group.attendances.filter(
+                        (attendance) => attendance.isActual
+                      );
+                      const canApply = actualAttendances.every(
+                        (attendance) =>
+                          attendance.roundStatus === "CONFIRMED"
+                      );
+                      return (
+                        <div
+                          key={group.name}
+                          className="rounded-2xl border border-[#eadbcf] bg-white px-4 py-3"
+                        >
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                            <span>{group.name}</span>
+                            <span className="text-[11px] text-[#6b5a4b]">
+                              {summary
+                                ? `合計 ${summary.totalAmount}円 / ${formatPaymentStatus(summary.status)}`
+                                : "会計が未確定です。"}
+                            </span>
+                          </div>
+                          {summary ? (
+                            <p className="mt-1 text-[11px] text-[#6b5a4b]">
+                              {summary.breakdown
+                                .map(
+                                  (item) => `${item.roundName}: ${item.amount}円`
+                                )
+                                .join(" / ")}
+                            </p>
+                          ) : null}
+                          {canApply && summary ? (
+                            <div className="mt-3 flex flex-wrap items-center gap-3">
+                              {summary.status === "UNSUBMITTED" ? (
                                 <>
                                   <select
-                                    value={paymentMethods[attendance.id] ?? ""}
+                                    value={paymentMethods[group.name] ?? ""}
                                     onChange={(event) =>
                                       setPaymentMethods((prev) => ({
                                         ...prev,
-                                        [attendance.id]: event.target.value,
+                                        [group.name]: event.target.value,
                                       }))
                                     }
                                     className="rounded-full border border-[#e2d6c9] px-3 py-1"
@@ -591,45 +761,40 @@ function getOrCreateClientId() {
                                     <option value="OTHER">その他</option>
                                   </select>
                                   <button
-                                    onClick={() => applyPayment(attendance.id)}
-                                    disabled={!paymentMethods[attendance.id]}
+                                    onClick={() => applyPayment(group.name)}
+                                    disabled={!paymentMethods[group.name]}
                                     className="rounded-full bg-[#1f1b16] px-3 py-1 font-semibold text-white transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
                                   >
-                                    {applyingPaymentIds[attendance.id]
+                                    {applyingPaymentIds[group.name]
                                       ? "申請中..."
                                       : "申請"}
                                   </button>
                                 </>
                               ) : null}
-                              {payment.status === "PENDING" ? (
+                              {summary.status === "PENDING" ? (
                                 <button
-                                  onClick={() => cancelPayment(attendance.id)}
-                                  disabled={cancelingPaymentIds[attendance.id]}
+                                  onClick={() => cancelPayment(group.name)}
+                                  disabled={cancelingPaymentIds[group.name]}
                                   className="rounded-full border border-[#1f1b16] px-3 py-1 font-semibold text-[#1f1b16] transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
                                 >
-                                  {cancelingPaymentIds[attendance.id]
+                                  {cancelingPaymentIds[group.name]
                                     ? "取消中..."
                                     : "申請取消"}
                                 </button>
                               ) : null}
-                            </>
+                            </div>
                           ) : (
-                            <span className="text-[#6b5a4b]">
-                              会計が未確定です。
-                            </span>
+                            <p className="mt-2 text-[11px] text-[#6b5a4b]">
+                              {canApply
+                                ? "会計の確定をお待ちください。"
+                                : "未確定の回があるため申請できません。"}
+                            </p>
                           )}
                         </div>
-                      ) : (
-                        <p className="mt-2 text-xs text-[#6b5a4b]">
-                          {event.accountingStatus === "CONFIRMED"
-                            ? "実出席者のみ支払申請が可能です。"
-                            : null}
-                        </p>
-                      )}
-                    </div>
-                  );
-                })
-              )}
+                      );
+                    })
+                )}
+              </div>
             </div>
           </section>
         ) : null}

@@ -28,3 +28,4 @@ npx prisma db seed
 - `DATABASE_URL` は **Vercel に設定している本番URLと一致**させる。
 - Schema変更時は **先にマイグレーション**を作成してからデプロイする。
 - 本番DBは `prisma migrate reset` を使わない（データが消えるため）。
+- `EventRound` は 1次会/2次会の単位を表し、`Attendance`/`Payment` は回に紐づく。
