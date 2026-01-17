@@ -13,3 +13,4 @@ Mermaid 形式の図を管理します。
 - `docs/diagrams/flow-accounting.md` 会計確定/取消フロー
 - `docs/diagrams/flow-payment.md` 支払申請/承認フロー
 - `docs/diagrams/flow-auth.md` 認証・認可フロー
+- `docs/diagrams/flow-round-delete.md` 回削除フロー
