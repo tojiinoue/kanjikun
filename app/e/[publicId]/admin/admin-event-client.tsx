@@ -649,10 +649,6 @@ export default function AdminEventClient({ publicId }: Props) {
     );
   }
 
-  function addCandidateDraft() {
-    setCandidateDrafts((prev) => [...prev, { startsAt: "" }]);
-  }
-
   function removeCandidateDraft(index: number) {
     setCandidateDrafts((prev) => prev.filter((_, i) => i !== index));
   }

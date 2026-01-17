@@ -1,10 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getServerAuthSession } from "@/lib/session";
 
-export async function assertEventAdmin(
-  eventId: string,
-  ownerClientId?: string | null
-) {
+export async function assertEventAdmin(eventId: string) {
   const session = await getServerAuthSession();
   const event = await prisma.event.findUnique({
     where: { id: eventId },
