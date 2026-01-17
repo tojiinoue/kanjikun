@@ -1,7 +1,5 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY ?? "");
-
 type EmailPayload = {
   to: string;
   subject: string;
@@ -10,15 +8,19 @@ type EmailPayload = {
 };
 
 export async function sendEmail({ to, subject, text, html }: EmailPayload) {
-  if (process.env.NODE_ENV !== "production") {
-    console.info("[mailer] skipped in non-production", { to, subject });
+  const enabled = process.env.MAIL_SEND_ENABLED === "true";
+  if (!enabled) {
+    console.info("[mailer] skipped (MAIL_SEND_ENABLED!=true)", { to, subject });
     return;
   }
 
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) throw new Error("RESEND_API_KEY is not configured.");
+
+  const resend = new Resend(apiKey);
+
   const from = process.env.MAIL_FROM;
-  if (!from) {
-    throw new Error("MAIL_FROM is not configured.");
-  }
+  if (!from) throw new Error("MAIL_FROM is not configured.");
 
   await resend.emails.send({
     from,
