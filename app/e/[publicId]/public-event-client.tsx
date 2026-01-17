@@ -124,31 +124,6 @@ function formatShopScheduleDisplay(value?: string | null) {
   });
 }
 
-export default function PublicEventClient({ publicId }: Props) {
-  const [event, setEvent] = useState<EventResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [formName, setFormName] = useState("");
-  const [formComment, setFormComment] = useState("");
-  const [editingVoteId, setEditingVoteId] = useState<string | null>(null);
-  const [showForm, setShowForm] = useState(false);
-  const [choices, setChoices] = useState<Record<string, VoteChoice["response"]>>(
-    {}
-  );
-  const [clientId, setClientId] = useState("");
-  const [paymentMethods, setPaymentMethods] = useState<Record<string, string>>(
-    {}
-  );
-  const [applyingPaymentIds, setApplyingPaymentIds] = useState<
-    Record<string, boolean>
-  >({});
-  const [cancelingPaymentIds, setCancelingPaymentIds] = useState<
-    Record<string, boolean>
-  >({});
-  const formRef = useRef<HTMLDivElement | null>(null);
-  const [copied, setCopied] = useState(false);
-  const [shopCopied, setShopCopied] = useState(false);
-
 function getOrCreateClientId() {
   if (typeof window === "undefined") {
     return "";
@@ -161,6 +136,31 @@ function getOrCreateClientId() {
   window.localStorage.setItem("client_id", generated);
   return generated;
 }
+
+export default function PublicEventClient({ publicId }: Props) {
+  const [event, setEvent] = useState<EventResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [formName, setFormName] = useState("");
+  const [formComment, setFormComment] = useState("");
+  const [editingVoteId, setEditingVoteId] = useState<string | null>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [choices, setChoices] = useState<Record<string, VoteChoice["response"]>>(
+    {}
+  );
+  const [clientId] = useState(() => getOrCreateClientId());
+  const [paymentMethods, setPaymentMethods] = useState<Record<string, string>>(
+    {}
+  );
+  const [applyingPaymentIds, setApplyingPaymentIds] = useState<
+    Record<string, boolean>
+  >({});
+  const [cancelingPaymentIds, setCancelingPaymentIds] = useState<
+    Record<string, boolean>
+  >({});
+  const formRef = useRef<HTMLDivElement | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [shopCopied, setShopCopied] = useState(false);
 
   async function loadEvent(preserveScroll = false) {
     const scrollY =
@@ -182,6 +182,11 @@ function getOrCreateClientId() {
     }
     const data = (await response.json()) as EventResponse;
     setEvent(data);
+    const initial: Record<string, VoteChoice["response"]> = {};
+    data.candidateDates.forEach((candidate) => {
+      initial[candidate.id] = "NO";
+    });
+    setChoices(initial);
     if (!preserveScroll) {
       setLoading(false);
     }
@@ -195,29 +200,15 @@ function getOrCreateClientId() {
   }
 
   useEffect(() => {
-    setClientId(getOrCreateClientId());
-  }, []);
-
-  useEffect(() => {
     if (!publicId) {
-      setError("イベントIDが取得できませんでした。");
-      setLoading(false);
       return;
     }
     if (!clientId) {
       return;
     }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadEvent();
   }, [publicId, clientId]);
-
-  useEffect(() => {
-    if (!event) return;
-    const initial: Record<string, VoteChoice["response"]> = {};
-    event.candidateDates.forEach((candidate) => {
-      initial[candidate.id] = "NO";
-    });
-    setChoices(initial);
-  }, [event]);
 
   const voteList = useMemo(() => event?.votes ?? [], [event]);
   const sortedCandidates = useMemo(() => {
@@ -341,6 +332,10 @@ function getOrCreateClientId() {
       });
     });
     return result;
+  }, [event]);
+  const allRoundsConfirmed = useMemo(() => {
+    if (!event) return false;
+    return event.rounds.every((round) => round.accountingStatus === "CONFIRMED");
   }, [event]);
   const topYesCount = useMemo(() => {
     if (!event) return 0;
@@ -477,6 +472,18 @@ function getOrCreateClientId() {
     }
     await loadEvent(true);
     setCancelingPaymentIds((prev) => ({ ...prev, [attendeeName]: false }));
+  }
+
+  if (!publicId) {
+    return (
+      <main className="min-h-screen bg-[#f6f1ea] px-4 py-12 text-[#1f1b16] sm:px-6 sm:py-16">
+        <div className="mx-auto max-w-4xl">
+          <h1 className="text-2xl font-semibold">
+            イベントIDが取得できませんでした
+          </h1>
+        </div>
+      </main>
+    );
   }
 
   if (loading) {
@@ -651,17 +658,6 @@ function getOrCreateClientId() {
         {event.scheduleStatus === "CONFIRMED" ? (
           <section className="rounded-3xl border border-[#e6d6c9] bg-white/80 p-6 sm:p-8">
             <h2 className="text-lg font-semibold">出席一覧</h2>
-            {event.ownerPaypayId ? (
-              <div className="mt-2 space-y-1 text-xs text-[#6b5a4b]">
-                <p>
-                  PayPay ID:{" "}
-                  <span className="font-semibold text-[#4d3f34]">
-                    {event.ownerPaypayId}
-                  </span>
-                </p>
-                <p>PayPayで支払う方はこちらのIDに送金してください。</p>
-              </div>
-            ) : null}
             <div className="mt-4 space-y-4 text-sm">
               {event.rounds.length === 0 ? (
                 <p className="text-[#6b5a4b]">
@@ -699,102 +695,121 @@ function getOrCreateClientId() {
 
             <div className="mt-6 border-t border-[#eadbcf] pt-4">
               <h3 className="text-sm font-semibold text-[#4d3f34]">支払申請</h3>
-              <div className="mt-3 space-y-2 text-xs">
-                {attendeeGroups.length === 0 ? (
-                  <p className="text-[#6b5a4b]">
-                    支払対象の出席者がいません。
-                  </p>
-                ) : (
-                  attendeeGroups
-                    .filter((group) =>
-                      group.attendances.some((attendance) => attendance.isActual)
-                    )
-                    .map((group) => {
-                      const summary = paymentSummaries.get(group.name);
-                      const actualAttendances = group.attendances.filter(
-                        (attendance) => attendance.isActual
-                      );
-                      const canApply = actualAttendances.every(
-                        (attendance) =>
-                          attendance.roundStatus === "CONFIRMED"
-                      );
-                      return (
-                        <div
-                          key={group.name}
-                          className="rounded-2xl border border-[#eadbcf] bg-white px-4 py-3"
-                        >
-                          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-                            <span>{group.name}</span>
-                            <span className="text-[11px] text-[#6b5a4b]">
-                              {summary
-                                ? `合計 ${summary.totalAmount}円 / ${formatPaymentStatus(summary.status)}`
-                                : "会計が未確定です。"}
-                            </span>
-                          </div>
-                          {summary ? (
-                            <p className="mt-1 text-[11px] text-[#6b5a4b]">
-                              {summary.breakdown
-                                .map(
-                                  (item) => `${item.roundName}: ${item.amount}円`
-                                )
-                                .join(" / ")}
-                            </p>
-                          ) : null}
-                          {canApply && summary ? (
-                            <div className="mt-3 flex flex-wrap items-center gap-3">
-                              {summary.status === "UNSUBMITTED" ? (
-                                <>
-                                  <select
-                                    value={paymentMethods[group.name] ?? ""}
-                                    onChange={(event) =>
-                                      setPaymentMethods((prev) => ({
-                                        ...prev,
-                                        [group.name]: event.target.value,
-                                      }))
-                                    }
-                                    className="rounded-full border border-[#e2d6c9] px-3 py-1"
-                                  >
-                                    <option value="">支払方法</option>
-                                    <option value="CASH">現金</option>
-                                    <option value="PAYPAY">PayPay</option>
-                                    <option value="TRANSFER">振込</option>
-                                    <option value="OTHER">その他</option>
-                                  </select>
-                                  <button
-                                    onClick={() => applyPayment(group.name)}
-                                    disabled={!paymentMethods[group.name]}
-                                    className="rounded-full bg-[#1f1b16] px-3 py-1 font-semibold text-white transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
-                                  >
-                                    {applyingPaymentIds[group.name]
-                                      ? "申請中..."
-                                      : "申請"}
-                                  </button>
-                                </>
-                              ) : null}
-                              {summary.status === "PENDING" ? (
-                                <button
-                                  onClick={() => cancelPayment(group.name)}
-                                  disabled={cancelingPaymentIds[group.name]}
-                                  className="rounded-full border border-[#1f1b16] px-3 py-1 font-semibold text-[#1f1b16] transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
-                                >
-                                  {cancelingPaymentIds[group.name]
-                                    ? "取消中..."
-                                    : "申請取消"}
-                                </button>
-                              ) : null}
+              {!allRoundsConfirmed ? (
+                <p className="mt-3 text-[11px] text-[#6b5a4b]">
+                  会計確定後に支払申請が可能です。
+                </p>
+              ) : (
+                <div className="mt-3 space-y-2 text-xs">
+                  {event.ownerPaypayId ? (
+                    <div className="rounded-2xl border border-[#eadbcf] bg-white px-4 py-3 text-[11px] text-[#6b5a4b]">
+                      <p>
+                        PayPay ID:{" "}
+                        <span className="font-semibold text-[#4d3f34]">
+                          {event.ownerPaypayId}
+                        </span>
+                      </p>
+                      <p className="mt-1">
+                        PayPayで支払う方はこちらのIDに送金してください。
+                      </p>
+                    </div>
+                  ) : null}
+                  {attendeeGroups.length === 0 ? (
+                    <p className="text-[#6b5a4b]">
+                      支払対象の出席者がいません。
+                    </p>
+                  ) : (
+                    attendeeGroups
+                      .filter((group) =>
+                        group.attendances.some((attendance) => attendance.isActual)
+                      )
+                      .map((group) => {
+                        const summary = paymentSummaries.get(group.name);
+                        const actualAttendances = group.attendances.filter(
+                          (attendance) => attendance.isActual
+                        );
+                        const canApply = actualAttendances.every(
+                          (attendance) =>
+                            attendance.roundStatus === "CONFIRMED"
+                        );
+                        return (
+                          <div
+                            key={group.name}
+                            className="rounded-2xl border border-[#eadbcf] bg-white px-4 py-3"
+                          >
+                            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                              <span>{group.name}</span>
+                              <span className="text-[11px] text-[#6b5a4b]">
+                                {summary
+                                  ? `合計 ${summary.totalAmount}円 / ${formatPaymentStatus(summary.status)}`
+                                  : "会計が未確定です。"}
+                              </span>
                             </div>
-                          ) : (
-                            <p className="mt-2 text-[11px] text-[#6b5a4b]">
-                              {canApply
-                                ? "会計の確定をお待ちください。"
-                                : "未確定の回があるため申請できません。"}
-                            </p>
-                          )}
-                        </div>
-                      );
-                    })
-                )}
-              </div>
+                            {summary ? (
+                              <p className="mt-1 text-[11px] text-[#6b5a4b]">
+                                {summary.breakdown
+                                  .map(
+                                    (item) => `${item.roundName}: ${item.amount}円`
+                                  )
+                                  .join(" / ")}
+                              </p>
+                            ) : null}
+                            {canApply && summary ? (
+                              <div className="mt-3 flex flex-wrap items-center gap-3">
+                                {summary.status === "UNSUBMITTED" ? (
+                                  <>
+                                    <select
+                                      value={paymentMethods[group.name] ?? ""}
+                                      onChange={(event) =>
+                                        setPaymentMethods((prev) => ({
+                                          ...prev,
+                                          [group.name]: event.target.value,
+                                        }))
+                                      }
+                                      className="rounded-full border border-[#e2d6c9] px-3 py-1"
+                                    >
+                                      <option value="">支払方法</option>
+                                      <option value="CASH">現金</option>
+                                      <option value="PAYPAY">PayPay</option>
+                                      <option value="TRANSFER">振込</option>
+                                      <option value="OTHER">その他</option>
+                                    </select>
+                                    <button
+                                      onClick={() => applyPayment(group.name)}
+                                      disabled={!paymentMethods[group.name]}
+                                      className="rounded-full bg-[#1f1b16] px-3 py-1 font-semibold text-white transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+                                    >
+                                      {applyingPaymentIds[group.name]
+                                        ? "申請中..."
+                                        : "申請"}
+                                    </button>
+                                  </>
+                                ) : null}
+                                {summary.status === "PENDING" ? (
+                                  <button
+                                    onClick={() => cancelPayment(group.name)}
+                                    disabled={cancelingPaymentIds[group.name]}
+                                    className="rounded-full border border-[#1f1b16] px-3 py-1 font-semibold text-[#1f1b16] transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+                                  >
+                                    {cancelingPaymentIds[group.name]
+                                      ? "取消中..."
+                                      : "申請取消"}
+                                  </button>
+                                ) : null}
+                              </div>
+                            ) : (
+                              <p className="mt-2 text-[11px] text-[#6b5a4b]">
+                                {canApply
+                                  ? "会計の確定をお待ちください。"
+                                  : "未確定の回があるため申請できません。"}
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })
+                  )}
+                </div>
+              )}
             </div>
           </section>
         ) : null}
