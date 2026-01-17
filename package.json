@@ -19,6 +19,7 @@
     "next-auth": "^4.24.7",
     "@aws-sdk/client-ses": "^3.758.0",
     "@next-auth/prisma-adapter": "^1.0.7",
+    "resend": "^4.0.0",
     "react": "19.2.3",
     "react-dom": "19.2.3"
   },

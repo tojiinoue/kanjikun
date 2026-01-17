@@ -1,12 +1,6 @@
-import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
+import { Resend } from "resend";
 
-const sesClient = new SESClient({
-  region: process.env.AWS_SES_REGION,
-  credentials: {
-    accessKeyId: process.env.AWS_SES_ACCESS_KEY_ID ?? "",
-    secretAccessKey: process.env.AWS_SES_SECRET_ACCESS_KEY ?? "",
-  },
-});
+const resend = new Resend(process.env.RESEND_API_KEY ?? "");
 
 type EmailPayload = {
   to: string;
@@ -26,17 +20,11 @@ export async function sendEmail({ to, subject, text, html }: EmailPayload) {
     throw new Error("MAIL_FROM is not configured.");
   }
 
-  const command = new SendEmailCommand({
-    Destination: { ToAddresses: [to] },
-    Message: {
-      Subject: { Data: subject },
-      Body: {
-        Text: { Data: text },
-        ...(html ? { Html: { Data: html } } : {}),
-      },
-    },
-    Source: from,
+  await resend.emails.send({
+    from,
+    to,
+    subject,
+    text,
+    ...(html ? { html } : {}),
   });
-
-  await sesClient.send(command);
 }
