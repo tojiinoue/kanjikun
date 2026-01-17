@@ -6,7 +6,7 @@ sequenceDiagram
   participant UI as Web UI
   participant API as /api/events/{publicId}/votes
   participant DB as PostgreSQL
-  participant Mail as SES
+  participant Mail as Resend
 
   P->>UI: 投票入力
   UI->>API: POST /votes

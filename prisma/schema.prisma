@@ -46,6 +46,13 @@ model Event {
   publicId                 String           @unique
   name                     String
   memo                     String?
+  shopSchedule             String?
+  shopName                 String?
+  shopUrl                  String?
+  courseName               String?
+  courseUrl                String?
+  shopAddress              String?
+  shopPrice                String?
   areaPrefCode             String?
   areaMunicipalityName     String?
   ownerUserId              String?
@@ -159,6 +166,7 @@ model User {
   name          String?
   email         String?   @unique
   passwordHash  String?
+  paypayId      String?
   emailVerified DateTime?
   image         String?
   createdAt     DateTime  @default(now())

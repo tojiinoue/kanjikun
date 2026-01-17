@@ -12,6 +12,7 @@
 - `DATABASE_URL` の設定ミス（接続文字列/環境違い）
 - Prisma マイグレーション未適用
 - OAuth の `redirect_uri` 不一致
+- `RESEND_API_KEY`/`MAIL_FROM` 未設定（通知メール未送信）
 
 ## 4. 復旧手順
 - 環境変数の修正 → Redeploy

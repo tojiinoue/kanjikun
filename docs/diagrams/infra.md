@@ -19,7 +19,7 @@ flowchart TB
   end
 
   subgraph Mail["Email"]
-    ses["AWS SES"]
+    resend["Resend"]
   end
 
   user --> web
@@ -27,5 +27,5 @@ flowchart TB
   web --> pg
   web --> oauth
   web --> cred
-  web --> ses
+  web --> resend
 ```

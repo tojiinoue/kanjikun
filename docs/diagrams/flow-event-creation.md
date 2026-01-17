@@ -8,7 +8,7 @@ sequenceDiagram
   participant DB as PostgreSQL
 
   A->>UI: イベント作成画面
-  UI->>API: POST /api/events (name, memo, candidates)
+  UI->>API: POST /api/events (name, memo, areaPrefCode, areaMunicipalityName, candidates)
   API->>DB: Event + CandidateDate 作成
   DB-->>API: 作成結果
   API-->>UI: publicId 返却

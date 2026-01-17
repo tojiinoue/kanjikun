@@ -5,14 +5,14 @@ import { getServerAuthSession } from "@/lib/session";
 export const metadata: Metadata = {
   title: "幹事の飲み会管理サービス",
   description:
-    "日程調整、出欠、会計、支払申請までを一気通貫で管理。幹事の“やり残し”をなくすための飲み会管理ツール。",
+    "日程調整、出欠、会計、支払申請までを一気通貫で管理。予約情報やPayPay IDの共有までカバーする幹事向けツール。",
   alternates: {
     canonical: "/",
   },
   openGraph: {
     title: "幹事の飲み会管理サービス",
     description:
-      "日程調整、出欠、会計、支払申請までを一気通貫で管理。幹事の“やり残し”をなくすための飲み会管理ツール。",
+      "日程調整、出欠、会計、支払申請までを一気通貫で管理。予約情報やPayPay IDの共有までカバーする幹事向けツール。",
     url: "/",
   },
 };
@@ -38,8 +38,8 @@ export default async function Home() {
               きちんと終わらせる。
             </h1>
             <p className="mt-6 text-base leading-7 text-[#5e4c3d] sm:text-lg">
-              日程調整から当日出席、割り勘、支払申請まで。
-              幹事の“やり残し”をなくすための管理ツールです。
+              日程調整から当日出席、会計、支払申請まで。
+              予約情報の共有やPayPay IDの案内も一緒に管理できます。
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               {isLoggedIn ? (
@@ -69,11 +69,17 @@ export default async function Home() {
             <div className="mt-10 flex flex-wrap gap-6 text-sm text-[#7a6453]">
               <div>
                 <p className="text-xs uppercase tracking-[0.2em]">流れ</p>
-                <p className="mt-2">投票 → 確定 → 出席 → 会計 → 申請</p>
+                <p className="mt-2">
+                  投票 → 確定 → 予約情報 → 出席 → 会計 → 申請
+                </p>
               </div>
               <div>
                 <p className="text-xs uppercase tracking-[0.2em]">招待</p>
                 <p className="mt-2">URLだけで参加できる</p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em]">共有</p>
+                <p className="mt-2">予約情報とPayPay IDをまとめて案内</p>
               </div>
             </div>
             <div className="mt-6">
@@ -96,6 +102,7 @@ export default async function Home() {
                 "候補日を登録",
                 "投票を締切",
                 "日程を確定",
+                "予約情報を共有",
                 "出席者を確定",
                 "会計を入力",
                 "支払申請を承認",

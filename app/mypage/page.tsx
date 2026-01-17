@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { prisma } from "@/lib/prisma";
 import { getServerAuthSession } from "@/lib/session";
+import PaypayFormClient from "@/app/mypage/paypay-form-client";
 
 function formatDate(value: Date) {
   return value.toLocaleString("ja-JP");
@@ -29,15 +30,21 @@ export default async function MyPage() {
     );
   }
 
-  const events = await prisma.event.findMany({
-    where: { ownerUserId: session.user.id },
-    orderBy: { createdAt: "desc" },
-    include: {
-      candidateDates: {
-        orderBy: { startsAt: "asc" },
+  const [events, profile] = await Promise.all([
+    prisma.event.findMany({
+      where: { ownerUserId: session.user.id },
+      orderBy: { createdAt: "desc" },
+      include: {
+        candidateDates: {
+          orderBy: { startsAt: "asc" },
+        },
       },
-    },
-  });
+    }),
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { paypayId: true },
+    }),
+  ]);
 
   return (
     <main className="min-h-screen bg-[#f6f1ea] px-4 py-12 text-[#1f1b16] sm:px-6 sm:py-16">
@@ -74,47 +81,57 @@ export default async function MyPage() {
               </div>
             ) : (
               events.map((event) => (
-                <Link
-                  key={event.id}
-                  href={`/e/${event.publicId}/admin`}
-                  className="block rounded-2xl border border-[#e2d6c9] bg-white/90 shadow-sm transition active:scale-[0.99] active:bg-[#f7f2ed] hover:-translate-y-0.5 hover:shadow-md"
-                >
-                  <div className="flex items-center justify-between rounded-t-2xl bg-[#4a9d41] px-5 py-3 text-xs text-white">
-                    <span className="rounded-full bg-white/20 px-3 py-1">
-                      幹事
-                    </span>
-                    <span>{formatDate(event.createdAt)}</span>
-                  </div>
-                  <div className="space-y-3 p-5">
-                    <h2 className="text-lg font-semibold">{event.name}</h2>
-                    <div className="flex flex-wrap gap-2 text-xs">
-                      {event.candidateDates.map((candidate) => {
-                        const isConfirmed =
-                          event.confirmedCandidateDateId === candidate.id;
-                        return (
-                          <span
-                            key={candidate.id}
-                            className={`rounded-full border px-3 py-1 ${
-                              isConfirmed
-                                ? "border-[#4a9d41] bg-[#eaf4ee] text-[#2f7f3b]"
-                                : "border-[#e2d6c9] bg-white text-[#6b5a4b]"
-                            }`}
-                          >
-                            {candidate.startsAt.toLocaleDateString("ja-JP", {
-                              month: "numeric",
-                              day: "numeric",
-                              weekday: "short",
-                            })}
-                          </span>
-                        );
-                      })}
+                <div key={event.id} className="space-y-3">
+                  <Link
+                    href={`/e/${event.publicId}/admin`}
+                    className="block rounded-2xl border border-[#e2d6c9] bg-white/90 shadow-sm transition active:scale-[0.99] active:bg-[#f7f2ed] hover:-translate-y-0.5 hover:shadow-md"
+                  >
+                    <div className="flex items-center justify-between rounded-t-2xl bg-[#4a9d41] px-5 py-3 text-xs text-white">
+                      <span className="rounded-full bg-white/20 px-3 py-1">
+                        幹事
+                      </span>
+                      <span>{formatDate(event.createdAt)}</span>
                     </div>
-                  </div>
-                </Link>
+                    <div className="space-y-3 p-5">
+                      <h2 className="text-lg font-semibold">{event.name}</h2>
+                      <div className="flex flex-wrap gap-2 text-xs">
+                        {event.candidateDates.map((candidate) => {
+                          const isConfirmed =
+                            event.confirmedCandidateDateId === candidate.id;
+                          return (
+                            <span
+                              key={candidate.id}
+                              className={`rounded-full border px-3 py-1 ${
+                                isConfirmed
+                                  ? "border-[#4a9d41] bg-[#eaf4ee] text-[#2f7f3b]"
+                                  : "border-[#e2d6c9] bg-white text-[#6b5a4b]"
+                              }`}
+                            >
+                              {candidate.startsAt.toLocaleDateString("ja-JP", {
+                                month: "numeric",
+                                day: "numeric",
+                                weekday: "short",
+                              })}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </Link>
+                </div>
               ))
             )}
           </section>
 
+          <aside className="rounded-3xl border border-[#e6d6c9] bg-white/80 p-6 text-sm text-[#5e4c3d]">
+            <h2 className="text-lg font-semibold text-[#1f1b16]">
+              PayPay ID
+            </h2>
+            <p className="mt-2 text-xs text-[#6b5a4b]">
+              イベントページの出席一覧に表示されます。
+            </p>
+            <PaypayFormClient initialPaypayId={profile?.paypayId ?? null} />
+          </aside>
         </div>
       </div>
     </main>

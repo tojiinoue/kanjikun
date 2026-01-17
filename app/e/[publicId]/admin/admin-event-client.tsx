@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { formatAreaLabel, PREFECTURES } from "@/lib/area-options";
 
@@ -27,6 +28,13 @@ type EventResponse = {
   publicId: string;
   name: string;
   memo?: string | null;
+  shopSchedule?: string | null;
+  shopName?: string | null;
+  shopUrl?: string | null;
+  courseName?: string | null;
+  courseUrl?: string | null;
+  shopAddress?: string | null;
+  shopPrice?: string | null;
   areaPrefCode?: string | null;
   areaMunicipalityName?: string | null;
   votingLocked: boolean;
@@ -50,6 +58,19 @@ function toIsoFromLocal(value: string) {
   const [year, month, day] = datePart.split("-").map(Number);
   const [hour, minute] = timePart.split(":").map(Number);
   return new Date(year, month - 1, day, hour || 0, minute || 0).toISOString();
+}
+
+function formatShopScheduleDisplay(value?: string | null) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString("ja-JP", {
+    month: "numeric",
+    day: "numeric",
+    weekday: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function getOrCreateClientId() {
@@ -94,6 +115,7 @@ function formatPaymentMethod(method: Payment["method"]) {
 }
 
 export default function AdminEventClient({ publicId }: Props) {
+  const router = useRouter();
   const [event, setEvent] = useState<EventResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -105,6 +127,13 @@ export default function AdminEventClient({ publicId }: Props) {
   const [isEditingEvent, setIsEditingEvent] = useState(false);
   const [draftName, setDraftName] = useState("");
   const [draftMemo, setDraftMemo] = useState("");
+  const [draftShopSchedule, setDraftShopSchedule] = useState("");
+  const [draftShopName, setDraftShopName] = useState("");
+  const [draftShopUrl, setDraftShopUrl] = useState("");
+  const [draftCourseName, setDraftCourseName] = useState("");
+  const [draftCourseUrl, setDraftCourseUrl] = useState("");
+  const [draftShopAddress, setDraftShopAddress] = useState("");
+  const [draftShopPrice, setDraftShopPrice] = useState("");
   const [draftAreaPrefCode, setDraftAreaPrefCode] = useState("");
   const [draftMunicipalityName, setDraftMunicipalityName] = useState("");
   const [municipalityQuery, setMunicipalityQuery] = useState("");
@@ -137,8 +166,19 @@ export default function AdminEventClient({ publicId }: Props) {
   const [timeValue, setTimeValue] = useState("19:00");
   const [showCandidateEditor, setShowCandidateEditor] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [shopCopied, setShopCopied] = useState(false);
   const [scheduleQuery, setScheduleQuery] = useState("");
   const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [approvingPaymentIds, setApprovingPaymentIds] = useState<
+    Record<string, boolean>
+  >({});
+  const [rejectingPaymentIds, setRejectingPaymentIds] = useState<
+    Record<string, boolean>
+  >({});
+  const [unapprovingPaymentIds, setUnapprovingPaymentIds] = useState<
+    Record<string, boolean>
+  >({});
+  const [deletingEvent, setDeletingEvent] = useState(false);
 
   useEffect(() => {
     setClientId(getOrCreateClientId());
@@ -146,6 +186,9 @@ export default function AdminEventClient({ publicId }: Props) {
 
   function formatDateTimeLocal(value: string) {
     const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return "";
+    }
     const pad = (num: number) => num.toString().padStart(2, "0");
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(
       date.getDate()
@@ -182,6 +225,15 @@ export default function AdminEventClient({ publicId }: Props) {
     if (!isEditingEvent) {
       setDraftName(data.name);
       setDraftMemo(data.memo ?? "");
+      setDraftShopSchedule(
+        data.shopSchedule ? formatDateTimeLocal(data.shopSchedule) : ""
+      );
+      setDraftShopName(data.shopName ?? "");
+      setDraftShopUrl(data.shopUrl ?? "");
+      setDraftCourseName(data.courseName ?? "");
+      setDraftCourseUrl(data.courseUrl ?? "");
+      setDraftShopAddress(data.shopAddress ?? "");
+      setDraftShopPrice(data.shopPrice ?? "");
       setDraftAreaPrefCode(data.areaPrefCode ?? "");
       setDraftMunicipalityName(data.areaMunicipalityName ?? "");
       setMunicipalityQuery(data.areaMunicipalityName ?? "");
@@ -235,6 +287,15 @@ export default function AdminEventClient({ publicId }: Props) {
       body: JSON.stringify({
         name: draftName,
         memo: draftMemo,
+        shopSchedule: draftShopSchedule
+          ? toIsoFromLocal(draftShopSchedule)
+          : null,
+        shopName: draftShopName,
+        shopUrl: draftShopUrl,
+        courseName: draftCourseName,
+        courseUrl: draftCourseUrl,
+        shopAddress: draftShopAddress,
+        shopPrice: draftShopPrice,
         areaPrefCode: draftAreaPrefCode || null,
         areaMunicipalityName: draftMunicipalityName || null,
         ownerClientId: clientId,
@@ -255,6 +316,15 @@ export default function AdminEventClient({ publicId }: Props) {
     }
     setDraftName(event.name);
     setDraftMemo(event.memo ?? "");
+    setDraftShopSchedule(
+      event.shopSchedule ? formatDateTimeLocal(event.shopSchedule) : ""
+    );
+    setDraftShopName(event.shopName ?? "");
+    setDraftShopUrl(event.shopUrl ?? "");
+    setDraftCourseName(event.courseName ?? "");
+    setDraftCourseUrl(event.courseUrl ?? "");
+    setDraftShopAddress(event.shopAddress ?? "");
+    setDraftShopPrice(event.shopPrice ?? "");
     setDraftAreaPrefCode(event.areaPrefCode ?? "");
     setDraftMunicipalityName(event.areaMunicipalityName ?? "");
     setMunicipalityQuery(event.areaMunicipalityName ?? "");
@@ -379,6 +449,17 @@ export default function AdminEventClient({ publicId }: Props) {
   }, [event]);
   const scheduleConfirmed = event?.scheduleStatus === "CONFIRMED";
   const accountingConfirmed = event?.accountingStatus === "CONFIRMED";
+  const shopDetails = event
+    ? [
+        event.shopSchedule ? `日程: ${formatShopScheduleDisplay(event.shopSchedule)}` : null,
+        event.shopName ? `店名: ${event.shopName}` : null,
+        event.shopAddress ? `住所: ${event.shopAddress}` : null,
+        event.shopUrl ? `店舗リンク: ${event.shopUrl}` : null,
+        event.courseName ? `コース: ${event.courseName}` : null,
+        event.courseUrl ? `コースリンク: ${event.courseUrl}` : null,
+        event.shopPrice ? `料金: ${event.shopPrice}` : null,
+      ].filter(Boolean)
+    : [];
   const filteredScheduleCandidates = useMemo(() => {
     if (!event) return [];
     const query = scheduleQuery.trim();
@@ -675,6 +756,7 @@ export default function AdminEventClient({ publicId }: Props) {
   }
 
   async function approvePayment(paymentId: string) {
+    setApprovingPaymentIds((prev) => ({ ...prev, [paymentId]: true }));
     const response = await fetch(
       `/api/events/${publicId}/payments/${paymentId}/approve`,
       {
@@ -685,12 +767,15 @@ export default function AdminEventClient({ publicId }: Props) {
     );
     if (!response.ok) {
       setError("承認に失敗しました。");
+      setApprovingPaymentIds((prev) => ({ ...prev, [paymentId]: false }));
       return;
     }
     await loadEvent(true);
+    setApprovingPaymentIds((prev) => ({ ...prev, [paymentId]: false }));
   }
 
   async function rejectPayment(paymentId: string) {
+    setRejectingPaymentIds((prev) => ({ ...prev, [paymentId]: true }));
     const response = await fetch(
       `/api/events/${publicId}/payments/${paymentId}/reject`,
       {
@@ -701,9 +786,50 @@ export default function AdminEventClient({ publicId }: Props) {
     );
     if (!response.ok) {
       setError("差し戻しに失敗しました。");
+      setRejectingPaymentIds((prev) => ({ ...prev, [paymentId]: false }));
       return;
     }
     await loadEvent(true);
+    setRejectingPaymentIds((prev) => ({ ...prev, [paymentId]: false }));
+  }
+
+  async function unapprovePayment(paymentId: string) {
+    const ok = window.confirm("承認を取り消しますか？");
+    if (!ok) return;
+    setUnapprovingPaymentIds((prev) => ({ ...prev, [paymentId]: true }));
+    const response = await fetch(
+      `/api/events/${publicId}/payments/${paymentId}/unapprove`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ownerClientId: clientId }),
+      }
+    );
+    if (!response.ok) {
+      setError("承認の取り消しに失敗しました。");
+      setUnapprovingPaymentIds((prev) => ({ ...prev, [paymentId]: false }));
+      return;
+    }
+    await loadEvent(true);
+    setUnapprovingPaymentIds((prev) => ({ ...prev, [paymentId]: false }));
+  }
+
+  async function deleteEvent() {
+    const ok = window.confirm(
+      "イベントを削除しますか？関連データもすべて削除されます。"
+    );
+    if (!ok) return;
+
+    setDeletingEvent(true);
+    const response = await fetch(`/api/events/${publicId}`, {
+      method: "DELETE",
+    });
+    if (!response.ok) {
+      setError("イベントの削除に失敗しました。");
+      setDeletingEvent(false);
+      return;
+    }
+    router.replace("/mypage");
   }
 
   if (loading) {
@@ -892,6 +1018,109 @@ export default function AdminEventClient({ publicId }: Props) {
                   className="mt-2 w-full rounded-xl border border-[#e2d6c9] bg-white px-4 py-2 text-sm"
                 />
               </div>
+              <div className="space-y-4 rounded-2xl border border-[#eadbcf] bg-white/80 p-4 text-sm">
+                <p className="text-xs font-semibold text-[#6b5a4b]">
+                  予約情報（任意）
+                </p>
+                <div>
+                  <label className="text-xs font-semibold text-[#6b5a4b]">
+                    日程
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={draftShopSchedule}
+                    onChange={(eventInput) =>
+                      setDraftShopSchedule(eventInput.target.value)
+                    }
+                    maxLength={80}
+                    className="mt-2 w-full rounded-xl border border-[#e2d6c9] bg-white px-4 py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-[#6b5a4b]">
+                    店名
+                  </label>
+                  <input
+                    value={draftShopName}
+                    onChange={(eventInput) =>
+                      setDraftShopName(eventInput.target.value)
+                    }
+                    placeholder="店名を入力"
+                    maxLength={80}
+                    className="mt-2 w-full rounded-xl border border-[#e2d6c9] bg-white px-4 py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-[#6b5a4b]">
+                    住所
+                  </label>
+                  <input
+                    value={draftShopAddress}
+                    onChange={(eventInput) =>
+                      setDraftShopAddress(eventInput.target.value)
+                    }
+                    placeholder="住所を入力"
+                    maxLength={120}
+                    className="mt-2 w-full rounded-xl border border-[#e2d6c9] bg-white px-4 py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-[#6b5a4b]">
+                    店舗リンク
+                  </label>
+                  <input
+                    value={draftShopUrl}
+                    onChange={(eventInput) =>
+                      setDraftShopUrl(eventInput.target.value)
+                    }
+                    placeholder="https://..."
+                    maxLength={200}
+                    className="mt-2 w-full rounded-xl border border-[#e2d6c9] bg-white px-4 py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-[#6b5a4b]">
+                    コース
+                  </label>
+                  <input
+                    value={draftCourseName}
+                    onChange={(eventInput) =>
+                      setDraftCourseName(eventInput.target.value)
+                    }
+                    placeholder="コース名を入力"
+                    maxLength={80}
+                    className="mt-2 w-full rounded-xl border border-[#e2d6c9] bg-white px-4 py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-[#6b5a4b]">
+                    コースリンク
+                  </label>
+                  <input
+                    value={draftCourseUrl}
+                    onChange={(eventInput) =>
+                      setDraftCourseUrl(eventInput.target.value)
+                    }
+                    placeholder="https://..."
+                    maxLength={200}
+                    className="mt-2 w-full rounded-xl border border-[#e2d6c9] bg-white px-4 py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-[#6b5a4b]">
+                    料金
+                  </label>
+                  <input
+                    value={draftShopPrice}
+                    onChange={(eventInput) =>
+                      setDraftShopPrice(eventInput.target.value)
+                    }
+                    placeholder="例: 5,000円"
+                    maxLength={40}
+                    className="mt-2 w-full rounded-xl border border-[#e2d6c9] bg-white px-4 py-2 text-sm"
+                  />
+                </div>
+              </div>
               {eventEditError ? (
                 <p className="text-xs text-red-600">{eventEditError}</p>
               ) : null}
@@ -934,6 +1163,90 @@ export default function AdminEventClient({ publicId }: Props) {
                 ) : null}
                 {event.memo ? <p>{event.memo}</p> : null}
               </div>
+              {(event.shopSchedule ||
+                event.shopName ||
+                event.shopAddress ||
+                event.shopUrl ||
+                event.courseName ||
+                event.courseUrl ||
+                event.shopPrice) ? (
+                <div className="mt-4 rounded-2xl border border-[#eadbcf] bg-white/70 p-4 text-sm text-[#5e4c3d]">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="font-semibold text-[#4d3f34]">予約情報</p>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await navigator.clipboard.writeText(
+                          shopDetails.join("\n")
+                        );
+                        setShopCopied(true);
+                        window.setTimeout(() => setShopCopied(false), 1500);
+                      }}
+                      className="rounded-full border border-[#1f1b16] px-3 py-1 text-xs font-semibold text-[#1f1b16] transition active:scale-95"
+                    >
+                      {shopCopied ? "コピーしました" : "コピー"}
+                    </button>
+                  </div>
+                  <div className="mt-2 space-y-1">
+                    {event.shopSchedule ? (
+                      <p>
+                        <span className="font-semibold">日程:</span>{" "}
+                        {formatShopScheduleDisplay(event.shopSchedule)}
+                      </p>
+                    ) : null}
+                    {event.shopName ? (
+                      <p>
+                        <span className="font-semibold">店名:</span>{" "}
+                        {event.shopName}
+                      </p>
+                    ) : null}
+                    {event.shopAddress ? (
+                      <p>
+                        <span className="font-semibold">住所:</span>{" "}
+                        {event.shopAddress}
+                      </p>
+                    ) : null}
+                    {event.shopUrl ? (
+                      <p>
+                        <span className="font-semibold">店舗リンク:</span>{" "}
+                        <a
+                          href={event.shopUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="underline decoration-dotted underline-offset-2"
+                        >
+                          {event.shopUrl}
+                        </a>
+                      </p>
+                    ) : null}
+                    {event.courseName ? (
+                      <p>
+                        <span className="font-semibold">コース:</span>{" "}
+                        {event.courseName}
+                      </p>
+                    ) : null}
+                    {event.courseUrl ? (
+                      <p>
+                        <span className="font-semibold">コースリンク:</span>{" "}
+                        <a
+                          href={event.courseUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="underline decoration-dotted underline-offset-2"
+                        >
+                          {event.courseUrl}
+                        </a>
+                      </p>
+                    ) : null}
+                    {event.shopPrice ? (
+                      <p>
+                        <span className="font-semibold">料金:</span>{" "}
+                        {event.shopPrice}
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
               <div className="mt-6 flex flex-wrap gap-3">
                 <a
                   className="inline-flex rounded-full border border-[#1f1b16] px-4 py-2 text-xs font-semibold text-[#1f1b16]"
@@ -947,6 +1260,14 @@ export default function AdminEventClient({ publicId }: Props) {
                   className="inline-flex rounded-full border border-[#1f1b16] px-4 py-2 text-xs font-semibold text-[#1f1b16]"
                 >
                   イベント情報を編集
+                </button>
+                <button
+                  type="button"
+                  onClick={deleteEvent}
+                  disabled={deletingEvent}
+                  className="inline-flex rounded-full border border-[#a34c3d] px-4 py-2 text-xs font-semibold text-[#a34c3d] transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {deletingEvent ? "削除中..." : "イベントを削除"}
                 </button>
               </div>
             </>
@@ -1299,7 +1620,8 @@ export default function AdminEventClient({ publicId }: Props) {
                 />
                 <button
                   onClick={addAttendance}
-                  className="rounded-full border border-[#1f1b16] px-4 py-2 text-xs font-semibold text-[#1f1b16]"
+                  disabled={!newAttendanceName.trim()}
+                  className="rounded-full border border-[#1f1b16] px-4 py-2 text-xs font-semibold text-[#1f1b16] transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   追加
                 </button>
@@ -1392,17 +1714,33 @@ export default function AdminEventClient({ publicId }: Props) {
                         <div className="flex gap-2">
                           <button
                             onClick={() => approvePayment(payment.id)}
-                            className="rounded-full bg-[#1f1b16] px-3 py-1 text-xs font-semibold text-white"
+                            disabled={approvingPaymentIds[payment.id]}
+                            className="rounded-full bg-[#1f1b16] px-3 py-1 text-xs font-semibold text-white transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
                           >
-                            承認
+                            {approvingPaymentIds[payment.id]
+                              ? "承認中..."
+                              : "承認"}
                           </button>
                           <button
                             onClick={() => rejectPayment(payment.id)}
-                            className="rounded-full border border-[#1f1b16] px-3 py-1 text-xs font-semibold text-[#1f1b16]"
+                            disabled={rejectingPaymentIds[payment.id]}
+                            className="rounded-full border border-[#1f1b16] px-3 py-1 text-xs font-semibold text-[#1f1b16] transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
                           >
-                            差し戻し
+                            {rejectingPaymentIds[payment.id]
+                              ? "差し戻し中..."
+                              : "差し戻し"}
                           </button>
                         </div>
+                      ) : payment.status === "APPROVED" ? (
+                        <button
+                          onClick={() => unapprovePayment(payment.id)}
+                          disabled={unapprovingPaymentIds[payment.id]}
+                          className="rounded-full border border-[#1f1b16] px-3 py-1 text-xs font-semibold text-[#1f1b16] transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {unapprovingPaymentIds[payment.id]
+                            ? "取り消し中..."
+                            : "承認を取り消す"}
+                        </button>
                       ) : (
                         <span className="text-xs text-[#6b5a4b]">
                           {formatPaymentStatus(payment.status)}

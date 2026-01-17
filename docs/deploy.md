@@ -11,7 +11,7 @@
 ## デプロイ手順
 1. Vercel の Environment Variables を設定
 2. `Deployments` から Redeploy または新規デプロイ
-3. デプロイ完了後に動作確認（ログイン/イベント作成/投票）
+3. デプロイ完了後に動作確認（ログイン/イベント作成/投票/メール通知）
 
 ## 市区町村データの更新
 e-Stat の CSV を更新した場合は、変換と seed を実行する。
@@ -26,5 +26,5 @@ npx prisma db seed
 
 ## OAuth リダイレクト確認
 - Google OAuth を使う場合は以下を登録
-  - JavaScript 生成元: `https://<domain>`
-  - リダイレクト URI: `https://<domain>/api/auth/callback/google`
+  - JavaScript 生成元: `https://kanjikun.com`
+  - リダイレクト URI: `https://kanjikun.com/api/auth/callback/google`

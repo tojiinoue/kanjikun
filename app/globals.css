@@ -24,3 +24,17 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans);
 }
+
+button,
+a[class*="rounded-full"],
+a[class*="rounded-2xl"],
+a[class*="rounded-xl"] {
+  transition: transform 120ms ease, filter 120ms ease;
+}
+
+button:active,
+a[class*="rounded-full"]:active,
+a[class*="rounded-2xl"]:active,
+a[class*="rounded-xl"]:active {
+  transform: scale(0.96);
+}

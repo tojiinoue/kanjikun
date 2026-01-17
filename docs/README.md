@@ -10,3 +10,6 @@
 - `docs/monitoring.md` ログ/監視の見方
 - `docs/security.md` セキュリティ・権限・機密情報の扱い
 - `docs/troubleshooting.md` よくあるトラブルと対処
+- `docs/api.md` 主要APIの一覧
+- `docs/ux-copy.md` 画面文言のガイドライン
+- `docs/diagrams/README.md` 処理フロー/構成図
