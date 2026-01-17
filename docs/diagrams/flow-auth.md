@@ -26,9 +26,9 @@ sequenceDiagram
     API-->>UI: ownerUserId一致なら許可
   end
 
-  U->>UI: 参加者操作（投票/支払申請）
-  UI->>API: 参加者API呼び出し
+  U->>UI: 参加者URLへアクセス（/e/{publicId}）
+  UI->>API: 参加者API呼び出し（投票/支払申請）
   API->>DB: Event取得
   DB-->>API: Event
-  API-->>UI: 公開URLにより許可
+  API-->>UI: 公開URLにより許可（ログイン不要）
 ```

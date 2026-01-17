@@ -2,7 +2,7 @@
 
 ## 基本方針
 - 環境変数は Vercel / `.env` で管理し、リポジトリに含めない
-- `DATABASE_URL` / OAuth Secrets / SES Keys は漏えい禁止
+- `DATABASE_URL` / OAuth Secrets / Resend API キーは漏えい禁止
 
 ## 認可
 - 幹事権限はログインユーザー（ownerUserId）一致のみ

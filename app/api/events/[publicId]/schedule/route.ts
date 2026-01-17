@@ -72,12 +72,15 @@ export async function POST(request: Request, { params }: Params) {
       source: AttendanceSource.VOTE,
     }));
 
+  const formattedSchedule = new Date(candidate.startsAt).toISOString();
+
   await prisma.$transaction([
     prisma.event.update({
       where: { id: event.id },
       data: {
         confirmedCandidateDateId: body.candidateDateId,
         scheduleStatus: ScheduleStatus.CONFIRMED,
+        shopSchedule: event.shopSchedule ?? formattedSchedule,
       },
     }),
     prisma.attendance.createMany({

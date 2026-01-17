@@ -10,6 +10,7 @@ sequenceDiagram
   A->>UI: 日程確定
   UI->>API: POST /schedule (candidateDateId)
   API->>DB: Event 更新（CONFIRMED）
+  API->>DB: 予約情報の日程が空なら反映
   API->>DB: Attendance 生成（投票から）
   DB-->>API: 更新結果
   API-->>UI: OK

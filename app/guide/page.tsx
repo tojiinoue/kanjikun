@@ -27,14 +27,18 @@ const steps = [
   },
   {
     title: "3. 幹事が日程確定",
-    body: "投票結果を見て日程を確定します。確定後は出席管理へ進みます。",
+    body: "投票結果を見て日程を確定します。",
   },
   {
-    title: "4. 出席管理と会計",
+    title: "4. 予約情報を共有",
+    body: "店名や住所、コース、料金などの予約情報を入力して参加者に共有します。",
+  },
+  {
+    title: "5. 出席管理と会計",
     body: "当日の実出席者を確定し、会計を入力して割り勘を確定します。",
   },
   {
-    title: "5. 支払申請と承認",
+    title: "6. 支払申請と承認",
     body: "実出席者が支払申請し、幹事が承認して完了です。",
   },
 ];
@@ -51,7 +55,7 @@ export default function GuidePage() {
             幹事くんの使い方
           </h1>
           <p className="mt-3 text-sm text-[#6b5a4b]">
-            日程調整から支払承認まで、5ステップで完結します。
+            日程調整から支払承認まで、6ステップで完結します。
           </p>
           <div className="mt-5 flex flex-col gap-3 sm:flex-row">
             <Link
@@ -94,6 +98,22 @@ export default function GuidePage() {
               </p>
               <p className="mt-1">
                 不要です。イベントURLからそのまま投票・支払申請ができます。
+              </p>
+            </div>
+            <div>
+              <p className="font-semibold text-[#4d3f34]">
+                予約情報はどこで確認できますか？
+              </p>
+              <p className="mt-1">
+                イベントページのヘッダー付近に表示されます。幹事が編集できます。
+              </p>
+            </div>
+            <div>
+              <p className="font-semibold text-[#4d3f34]">
+                PayPay ID はどこに表示されますか？
+              </p>
+              <p className="mt-1">
+                出席一覧の上部に表示されます。PayPayで支払う参加者はそのIDへ送金します。
               </p>
             </div>
             <div>

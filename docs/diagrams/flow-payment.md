@@ -7,7 +7,7 @@ sequenceDiagram
   participant UI as Web UI
   participant API as /api/events/{publicId}/payments
   participant DB as PostgreSQL
-  participant Mail as SES
+  participant Mail as Resend
 
   P->>UI: 支払申請
   UI->>API: POST /payments/apply
@@ -22,8 +22,20 @@ sequenceDiagram
   DB-->>API: 更新結果
   API-->>UI: OK
 
+  A->>UI: 承認を取り消す
+  UI->>API: POST /payments/{paymentId}/unapprove
+  API->>DB: Payment 更新（PENDING）
+  DB-->>API: 更新結果
+  API-->>UI: OK
+
   A->>UI: 差し戻し
   UI->>API: POST /payments/{paymentId}/reject
+  API->>DB: Payment 更新（UNSUBMITTED）
+  DB-->>API: 更新結果
+  API-->>UI: OK
+
+  P->>UI: 申請取消
+  UI->>API: POST /payments/cancel
   API->>DB: Payment 更新（UNSUBMITTED）
   DB-->>API: 更新結果
   API-->>UI: OK

@@ -9,7 +9,12 @@
 ## イベント
 - `POST /api/events` イベント作成
 - `GET /api/events/{publicId}` イベント取得
+  - 予約情報（`shopSchedule`, `shopName`, `shopUrl`, `courseName`, `courseUrl`, `shopAddress`, `shopPrice`）を含む
+  - エリア情報（`areaPrefCode`, `areaMunicipalityName`）を含む
+  - 幹事の `ownerPaypayId` を含む
 - `PATCH /api/events/{publicId}` イベント情報更新（幹事のみ）
+  - 予約情報フィールド（`shopSchedule`, `shopName`, `shopUrl`, `courseName`, `courseUrl`, `shopAddress`, `shopPrice`）を含む
+- `DELETE /api/events/{publicId}` イベント削除（幹事のみ）
 
 ## 日程候補
 - `PUT /api/events/{publicId}/candidates` 候補日保存（幹事のみ）
@@ -24,7 +29,7 @@
 
 ## 市区町村検索
 - `GET /api/municipalities?pref=13&q=しん&limit=30&offset=0` 市区町村検索
-  - `pref` は都道府県コード（例: `13`）
+  - `pref` は都道府県コード（例: `13` / `01` など先頭ゼロ可）
   - `q` は検索文字列（未入力でも可）
   - `limit` / `offset` はページング
   - レスポンス: `{ municipalities: [{ id, name }], nextOffset }`
@@ -45,6 +50,8 @@
 - `POST /api/events/{publicId}/payments/cancel` 支払申請の取消
 - `POST /api/events/{publicId}/payments/{paymentId}/approve` 支払承認（幹事のみ）
 - `POST /api/events/{publicId}/payments/{paymentId}/reject` 支払差し戻し（幹事のみ）
+- `POST /api/events/{publicId}/payments/{paymentId}/unapprove` 承認取消（幹事のみ）
 
 ## マイページ
 - `GET /api/my/events` 作成イベント一覧（ログイン必須）
+- `PATCH /api/my/profile` PayPay ID 更新（ログイン必須）
