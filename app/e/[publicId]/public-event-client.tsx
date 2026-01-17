@@ -18,6 +18,7 @@ type Vote = {
   id: string;
   name: string;
   comment?: string | null;
+  createdAt: string;
   choices: VoteChoice[];
 };
 
@@ -214,7 +215,12 @@ function getOrCreateClientId() {
     );
   }, [event]);
   const sortedVotes = useMemo(() => {
-    return [...voteList].sort((a, b) => a.name.localeCompare(b.name));
+    return [...voteList].sort((a, b) => {
+      const timeDiff =
+        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      if (timeDiff !== 0) return timeDiff;
+      return a.name.localeCompare(b.name);
+    });
   }, [voteList]);
   const topYesCount = useMemo(() => {
     if (!event) return 0;
