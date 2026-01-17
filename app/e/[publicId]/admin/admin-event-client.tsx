@@ -37,6 +37,15 @@ type EventRound = {
   payments: Payment[];
 };
 
+type PaymentSummary = {
+  name: string;
+  totalAmount: number;
+  status: Payment["status"];
+  method: Payment["method"];
+  breakdown: Array<{ roundName: string; amount: number; roundOrder: number }>;
+  paymentId: string;
+};
+
 type EventResponse = {
   publicId: string;
   name: string;
@@ -304,7 +313,7 @@ export default function AdminEventClient({ publicId }: Props) {
       ),
     [selectedRound]
   );
-  const paymentSummaries = useMemo(() => {
+  const paymentSummaries: PaymentSummary[] = useMemo(() => {
     if (!event) return [];
     const attendanceMeta = new Map<
       string,
@@ -362,12 +371,12 @@ export default function AdminEventClient({ publicId }: Props) {
     });
 
     return Array.from(summaries.values()).map((summary) => {
-      const status = summary.statuses.includes("APPROVED")
+      const status: Payment["status"] = summary.statuses.includes("APPROVED")
         ? "APPROVED"
         : summary.statuses.includes("PENDING")
           ? "PENDING"
           : "UNSUBMITTED";
-      const method = summary.methods[0] ?? null;
+      const method: Payment["method"] = summary.methods[0] ?? null;
       const breakdown = [...summary.breakdown].sort(
         (a, b) => a.roundOrder - b.roundOrder
       );
