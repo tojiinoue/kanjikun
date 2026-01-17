@@ -49,6 +49,12 @@ export async function POST(request: Request) {
           startsAt: new Date(candidate.startsAt),
         })),
       },
+      rounds: {
+        create: {
+          order: 1,
+          name: "1次会",
+        },
+      },
     },
     include: {
       candidateDates: true,

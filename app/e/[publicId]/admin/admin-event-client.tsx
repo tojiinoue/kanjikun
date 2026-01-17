@@ -14,14 +14,27 @@ type Attendance = {
   id: string;
   name: string;
   isActual: boolean;
+  roundId: string;
 };
 
 type Payment = {
   id: string;
   attendanceId: string;
+  roundId: string;
   amount: number;
   method: "CASH" | "PAYPAY" | "TRANSFER" | "OTHER" | null;
   status: "UNSUBMITTED" | "PENDING" | "APPROVED";
+};
+
+type EventRound = {
+  id: string;
+  order: number;
+  name: string;
+  accountingStatus: "PENDING" | "CONFIRMED";
+  totalAmount?: number | null;
+  perPersonAmount?: number | null;
+  attendances: Attendance[];
+  payments: Payment[];
 };
 
 type EventResponse = {
@@ -45,8 +58,7 @@ type EventResponse = {
   perPersonAmount?: number | null;
   candidateDates: CandidateDate[];
   votes: { id: string }[];
-  attendances: Attendance[];
-  payments: Payment[];
+  rounds: EventRound[];
 };
 
 type Props = {
@@ -121,6 +133,7 @@ export default function AdminEventClient({ publicId }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [clientId, setClientId] = useState("");
   const [selectedCandidateId, setSelectedCandidateId] = useState("");
+  const [selectedRoundId, setSelectedRoundId] = useState("");
   const [newAttendanceName, setNewAttendanceName] = useState("");
   const [totalAmount, setTotalAmount] = useState("");
   const [adjustments, setAdjustments] = useState<Record<string, string>>({});
@@ -161,6 +174,7 @@ export default function AdminEventClient({ publicId }: Props) {
   const [candidateError, setCandidateError] = useState<string | null>(null);
   const [savingCandidates, setSavingCandidates] = useState(false);
   const [accountingError, setAccountingError] = useState<string | null>(null);
+  const [accountingSaving, setAccountingSaving] = useState(false);
   const [bulkInput, setBulkInput] = useState("");
   const [calendarMonth, setCalendarMonth] = useState(() => new Date());
   const [timeValue, setTimeValue] = useState("19:00");
@@ -179,6 +193,13 @@ export default function AdminEventClient({ publicId }: Props) {
     Record<string, boolean>
   >({});
   const [deletingEvent, setDeletingEvent] = useState(false);
+  const [addingRound, setAddingRound] = useState(false);
+  const [deletingRoundIds, setDeletingRoundIds] = useState<
+    Record<string, boolean>
+  >({});
+  const [updatingAttendanceIds, setUpdatingAttendanceIds] = useState<
+    Record<string, boolean>
+  >({});
 
   useEffect(() => {
     setClientId(getOrCreateClientId());
@@ -222,6 +243,12 @@ export default function AdminEventClient({ publicId }: Props) {
     }
     const data = (await response.json()) as EventResponse;
     setEvent(data);
+    if (
+      !selectedRoundId ||
+      !data.rounds.some((round) => round.id === selectedRoundId)
+    ) {
+      setSelectedRoundId(data.rounds[0]?.id ?? "");
+    }
     if (!isEditingEvent) {
       setDraftName(data.name);
       setDraftMemo(data.memo ?? "");
@@ -266,6 +293,95 @@ export default function AdminEventClient({ publicId }: Props) {
     }
   }
 
+  const selectedRound = useMemo(
+    () => event?.rounds.find((round) => round.id === selectedRoundId) ?? null,
+    [event, selectedRoundId]
+  );
+  const actualAttendances = useMemo(
+    () =>
+      (selectedRound?.attendances ?? []).filter(
+        (attendance) => attendance.isActual
+      ),
+    [selectedRound]
+  );
+  const paymentSummaries = useMemo(() => {
+    if (!event) return [];
+    const attendanceMeta = new Map<
+      string,
+      { name: string; roundName: string; roundOrder: number }
+    >();
+    event.rounds.forEach((round) => {
+      round.attendances.forEach((attendance) => {
+        attendanceMeta.set(attendance.id, {
+          name: attendance.name,
+          roundName: round.name,
+          roundOrder: round.order,
+        });
+      });
+    });
+
+    const summaries = new Map<
+      string,
+      {
+        name: string;
+        totalAmount: number;
+        statuses: Payment["status"][];
+        methods: Payment["method"][];
+        breakdown: Array<{ roundName: string; amount: number; roundOrder: number }>;
+        paymentIds: string[];
+      }
+    >();
+
+    event.rounds.forEach((round) => {
+      round.payments.forEach((payment) => {
+        const meta = attendanceMeta.get(payment.attendanceId);
+        if (!meta) return;
+        const existing =
+          summaries.get(meta.name) ??
+          {
+            name: meta.name,
+            totalAmount: 0,
+            statuses: [],
+            methods: [],
+            breakdown: [],
+            paymentIds: [],
+          };
+        existing.totalAmount += payment.amount;
+        existing.statuses.push(payment.status);
+        if (payment.method) {
+          existing.methods.push(payment.method);
+        }
+        existing.breakdown.push({
+          roundName: meta.roundName,
+          amount: payment.amount,
+          roundOrder: meta.roundOrder,
+        });
+        existing.paymentIds.push(payment.id);
+        summaries.set(meta.name, existing);
+      });
+    });
+
+    return Array.from(summaries.values()).map((summary) => {
+      const status = summary.statuses.includes("APPROVED")
+        ? "APPROVED"
+        : summary.statuses.includes("PENDING")
+          ? "PENDING"
+          : "UNSUBMITTED";
+      const method = summary.methods[0] ?? null;
+      const breakdown = [...summary.breakdown].sort(
+        (a, b) => a.roundOrder - b.roundOrder
+      );
+      return {
+        name: summary.name,
+        totalAmount: summary.totalAmount,
+        status,
+        method,
+        breakdown,
+        paymentId: summary.paymentIds[0],
+      };
+    });
+  }, [event]);
+
   useEffect(() => {
     if (!publicId) {
       setError("イベントIDが取得できませんでした。");
@@ -274,6 +390,20 @@ export default function AdminEventClient({ publicId }: Props) {
     }
     void loadEvent();
   }, [publicId]);
+
+  useEffect(() => {
+    if (!selectedRound) {
+      setTotalAmount("");
+      setAdjustments({});
+      return;
+    }
+    setTotalAmount(
+      typeof selectedRound.totalAmount === "number"
+        ? String(selectedRound.totalAmount)
+        : ""
+    );
+    setAdjustments({});
+  }, [selectedRound?.id]);
 
   async function saveEventDetails() {
     if (!draftName.trim()) {
@@ -307,6 +437,50 @@ export default function AdminEventClient({ publicId }: Props) {
     }
     setIsEditingEvent(false);
     await loadEvent(true);
+  }
+
+  async function addRound() {
+    if (addingRound) return;
+    setAddingRound(true);
+    const response = await fetch(`/api/events/${publicId}/rounds`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ownerClientId: clientId }),
+    });
+    if (!response.ok) {
+      setError("回の追加に失敗しました。");
+      setAddingRound(false);
+      return;
+    }
+    const payload = (await response.json()) as { round?: { id: string } };
+    await loadEvent(true);
+    if (payload.round?.id) {
+      setSelectedRoundId(payload.round.id);
+    }
+    setAddingRound(false);
+  }
+
+  async function deleteRound(roundId: string) {
+    if (deletingRoundIds[roundId]) {
+      return;
+    }
+    const ok = window.confirm(
+      "この回を削除しますか？出席と支払の情報も削除され、回の番号が詰め直されます。"
+    );
+    if (!ok) return;
+    setDeletingRoundIds((prev) => ({ ...prev, [roundId]: true }));
+    const response = await fetch(`/api/events/${publicId}/rounds/${roundId}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ownerClientId: clientId }),
+    });
+    if (!response.ok) {
+      setError("回の削除に失敗しました。");
+      setDeletingRoundIds((prev) => ({ ...prev, [roundId]: false }));
+      return;
+    }
+    await loadEvent(true);
+    setDeletingRoundIds((prev) => ({ ...prev, [roundId]: false }));
   }
 
   function cancelEventEdit() {
@@ -436,19 +610,8 @@ export default function AdminEventClient({ publicId }: Props) {
     }
   }
 
-  const actualAttendances = useMemo(
-    () => (event?.attendances ?? []).filter((attendance) => attendance.isActual),
-    [event]
-  );
-  const attendanceNameById = useMemo(() => {
-    const map = new Map<string, string>();
-    (event?.attendances ?? []).forEach((attendance) => {
-      map.set(attendance.id, attendance.name);
-    });
-    return map;
-  }, [event]);
   const scheduleConfirmed = event?.scheduleStatus === "CONFIRMED";
-  const accountingConfirmed = event?.accountingStatus === "CONFIRMED";
+  const accountingConfirmed = selectedRound?.accountingStatus === "CONFIRMED";
   const shopDetails = event
     ? [
         event.shopSchedule ? `日程: ${formatShopScheduleDisplay(event.shopSchedule)}` : null,
@@ -665,19 +828,43 @@ export default function AdminEventClient({ publicId }: Props) {
   }
 
   async function updateAttendance(attendanceId: string, isActual: boolean) {
+    if (updatingAttendanceIds[attendanceId]) {
+      return;
+    }
+    const previous = event;
+    if (event) {
+      setEvent({
+        ...event,
+        rounds: event.rounds.map((round) => ({
+          ...round,
+          attendances: round.attendances.map((attendance) =>
+            attendance.id === attendanceId
+              ? { ...attendance, isActual }
+              : attendance
+          ),
+        })),
+      });
+    }
+    setUpdatingAttendanceIds((prev) => ({ ...prev, [attendanceId]: true }));
     const response = await fetch(`/api/events/${publicId}/attendance`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         updates: [{ id: attendanceId, isActual }],
+        roundId: selectedRoundId,
         ownerClientId: clientId,
       }),
     });
     if (!response.ok) {
       setError("出席の更新に失敗しました。");
+      if (previous) {
+        setEvent(previous);
+      }
+      setUpdatingAttendanceIds((prev) => ({ ...prev, [attendanceId]: false }));
       return;
     }
     await loadEvent(true);
+    setUpdatingAttendanceIds((prev) => ({ ...prev, [attendanceId]: false }));
   }
 
   async function addAttendance() {
@@ -689,6 +876,7 @@ export default function AdminEventClient({ publicId }: Props) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         additions: [{ name: newAttendanceName }],
+        roundId: selectedRoundId,
         ownerClientId: clientId,
       }),
     });
@@ -701,9 +889,16 @@ export default function AdminEventClient({ publicId }: Props) {
   }
 
   async function confirmAccounting() {
+    if (!selectedRoundId) {
+      return;
+    }
+    if (accountingSaving) {
+      return;
+    }
     const amount = Number(totalAmount);
     if (!amount) return;
     setAccountingError(null);
+    setAccountingSaving(true);
     const response = await fetch(`/api/events/${publicId}/accounting`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -713,6 +908,7 @@ export default function AdminEventClient({ publicId }: Props) {
           attendanceId,
           amount: Number(value),
         })),
+        roundId: selectedRoundId,
         ownerClientId: clientId,
       }),
     });
@@ -732,27 +928,38 @@ export default function AdminEventClient({ publicId }: Props) {
         // JSONでない場合は既定メッセージ
       }
       setAccountingError(message);
+      setAccountingSaving(false);
       return;
     }
     setAccountingError(null);
     await loadEvent(true);
+    setAccountingSaving(false);
   }
 
   async function cancelAccounting() {
+    if (!selectedRoundId) {
+      return;
+    }
     const ok = window.confirm(
       "会計確定を取り消すと支払情報がリセットされます。続行しますか？"
     );
     if (!ok) return;
+    if (accountingSaving) {
+      return;
+    }
+    setAccountingSaving(true);
     const response = await fetch(`/api/events/${publicId}/accounting`, {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ownerClientId: clientId }),
+      body: JSON.stringify({ ownerClientId: clientId, roundId: selectedRoundId }),
     });
     if (!response.ok) {
       setError("会計の取り消しに失敗しました。");
+      setAccountingSaving(false);
       return;
     }
     await loadEvent(true);
+    setAccountingSaving(false);
   }
 
   async function approvePayment(paymentId: string) {
@@ -1587,22 +1794,83 @@ export default function AdminEventClient({ publicId }: Props) {
         {scheduleConfirmed ? (
           <>
             <section className="rounded-3xl border border-[#e6d6c9] bg-white/80 p-6 sm:p-8">
-              <h2 className="text-lg font-semibold">出席管理</h2>
+              <h2 className="text-lg font-semibold">回の管理</h2>
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                {(event.rounds ?? []).map((round) => (
+                  <button
+                    key={round.id}
+                    type="button"
+                    onClick={() => setSelectedRoundId(round.id)}
+                    className={`rounded-full border px-4 py-2 text-xs font-semibold transition active:scale-95 ${
+                      round.id === selectedRoundId
+                        ? "border-[#1f1b16] bg-[#1f1b16] text-white"
+                        : "border-[#1f1b16] text-[#1f1b16] hover:bg-[#f3e8dd]"
+                    }`}
+                  >
+                    {round.name}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={addRound}
+                  disabled={addingRound}
+                  className="rounded-full border border-[#1f1b16] px-4 py-2 text-xs font-semibold text-[#1f1b16] transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {addingRound ? "追加中..." : "回を追加"}
+                </button>
+              </div>
+            </section>
+
+            <section className="rounded-3xl border border-[#e6d6c9] bg-white/80 p-6 sm:p-8">
+              <h2 className="text-lg font-semibold">
+                出席管理{selectedRound ? `（${selectedRound.name}）` : ""}
+              </h2>
+              {selectedRound && selectedRound.order > 1 ? (
+                <button
+                  type="button"
+                  onClick={() => deleteRound(selectedRound.id)}
+                  disabled={deletingRoundIds[selectedRound.id]}
+                  className="mt-3 rounded-full border border-[#d9c6b8] px-4 py-2 text-xs font-semibold text-[#7a6453] transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {deletingRoundIds[selectedRound.id]
+                    ? "削除中..."
+                    : `${selectedRound.name}を削除`}
+                </button>
+              ) : null}
+              {accountingConfirmed ? (
+                <p className="mt-2 text-xs text-[#6b5a4b]">
+                  会計確定後は出席の変更ができません。
+                </p>
+              ) : null}
               <div className="mt-4 space-y-3 text-sm">
-                {event.attendances.length === 0 ? (
+                {!selectedRound ? (
+                  <p className="text-[#6b5a4b]">
+                    回が選択されていません。
+                  </p>
+                ) : selectedRound.attendances.length === 0 ? (
                   <p className="text-[#6b5a4b]">
                     出席者がまだ生成されていません。
                   </p>
                 ) : (
-                  event.attendances.map((attendance) => (
+                  selectedRound.attendances.map((attendance) => (
                     <label
                       key={attendance.id}
                       className="flex items-center justify-between rounded-2xl border border-[#eadbcf] bg-white px-4 py-3"
                     >
-                      <span>{attendance.name}</span>
+                      <div className="flex flex-col">
+                        <span>{attendance.name}</span>
+                        {updatingAttendanceIds[attendance.id] ? (
+                          <span className="text-xs text-[#a1714f]">
+                            更新中...
+                          </span>
+                        ) : null}
+                      </div>
                       <input
                         type="checkbox"
                         checked={attendance.isActual}
+                        disabled={
+                          accountingConfirmed || updatingAttendanceIds[attendance.id]
+                        }
                         onChange={(event) =>
                           updateAttendance(attendance.id, event.target.checked)
                         }
@@ -1616,11 +1884,16 @@ export default function AdminEventClient({ publicId }: Props) {
                   value={newAttendanceName}
                   onChange={(event) => setNewAttendanceName(event.target.value)}
                   placeholder="飛び入り参加者名"
-                  className="flex-1 rounded-xl border border-[#e2d6c9] px-4 py-2 text-sm"
+                  disabled={accountingConfirmed}
+                  className="flex-1 rounded-xl border border-[#e2d6c9] px-4 py-2 text-sm disabled:bg-[#f2ebe4]"
                 />
                 <button
                   onClick={addAttendance}
-                  disabled={!newAttendanceName.trim()}
+                  disabled={
+                    !newAttendanceName.trim() ||
+                    !selectedRoundId ||
+                    accountingConfirmed
+                  }
                   className="rounded-full border border-[#1f1b16] px-4 py-2 text-xs font-semibold text-[#1f1b16] transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   追加
@@ -1629,9 +1902,11 @@ export default function AdminEventClient({ publicId }: Props) {
             </section>
 
             <section className="rounded-3xl border border-[#e6d6c9] bg-white/80 p-6 sm:p-8">
-              <h2 className="text-lg font-semibold">会計確定</h2>
+              <h2 className="text-lg font-semibold">
+                会計確定{selectedRound ? `（${selectedRound.name}）` : ""}
+              </h2>
               <p className="mt-2 text-sm text-[#6b5a4b]">
-                {event.accountingStatus === "CONFIRMED"
+                {accountingConfirmed
                   ? "確定済み"
                   : "未確定"}
               </p>
@@ -1640,7 +1915,7 @@ export default function AdminEventClient({ publicId }: Props) {
                   value={totalAmount}
                   onChange={(event) => setTotalAmount(event.target.value)}
                   placeholder="合計金額"
-                  disabled={accountingConfirmed}
+                  disabled={!selectedRound || accountingConfirmed}
                   className="w-full rounded-xl border border-[#e2d6c9] px-4 py-2"
                 />
                 <div className="space-y-2">
@@ -1659,7 +1934,7 @@ export default function AdminEventClient({ publicId }: Props) {
                           }))
                         }
                         placeholder="金額調整"
-                        disabled={accountingConfirmed}
+                        disabled={!selectedRound || accountingConfirmed}
                         className="w-32 rounded-lg border border-[#e2d6c9] px-2 py-1 text-xs"
                       />
                     </div>
@@ -1671,17 +1946,22 @@ export default function AdminEventClient({ publicId }: Props) {
                 {accountingConfirmed ? (
                   <button
                     onClick={cancelAccounting}
+                    disabled={accountingSaving}
                     className="rounded-full border border-[#1f1b16] px-4 py-2 text-xs font-semibold text-[#1f1b16]"
                   >
-                    会計確定を取り消す
+                    {accountingSaving ? "取り消し中..." : "会計確定を取り消す"}
                   </button>
                 ) : (
                   <button
                     onClick={confirmAccounting}
-                    disabled={actualAttendances.length === 0}
+                    disabled={
+                      actualAttendances.length === 0 ||
+                      !selectedRound ||
+                      accountingSaving
+                    }
                     className="rounded-full bg-[#1f1b16] px-4 py-2 text-xs font-semibold text-white disabled:opacity-60"
                   >
-                    会計を確定する
+                    {accountingSaving ? "会計確定中..." : "会計を確定する"}
                   </button>
                 )}
               </div>
@@ -1690,12 +1970,12 @@ export default function AdminEventClient({ publicId }: Props) {
             <section className="rounded-3xl border border-[#e6d6c9] bg-white/80 p-6 sm:p-8">
               <h2 className="text-lg font-semibold">支払管理</h2>
               <div className="mt-4 space-y-2 text-sm">
-                {event.payments.length === 0 ? (
+                {paymentSummaries.length === 0 ? (
                   <p className="text-[#6b5a4b]">支払情報がまだありません。</p>
                 ) : (
-                  event.payments.map((payment) => (
+                  paymentSummaries.map((payment) => (
                     <div
-                      key={payment.id}
+                      key={payment.paymentId}
                       className={`flex flex-col items-start gap-3 rounded-2xl border border-[#eadbcf] px-4 py-2 sm:flex-row sm:items-center sm:justify-between ${
                         payment.status === "PENDING"
                           ? "bg-[#fff4e9]"
@@ -1703,41 +1983,46 @@ export default function AdminEventClient({ publicId }: Props) {
                       }`}
                     >
                       <span className="font-semibold text-[#1f1b16]">
-                        {attendanceNameById.get(payment.attendanceId) ?? "名前不明"}
+                        {payment.name}
                       </span>
-                      <span>金額: {payment.amount}円</span>
+                      <span>合計: {payment.totalAmount}円</span>
                       <span className="text-xs text-[#6b5a4b]">
                         {formatPaymentMethod(payment.method)} /{" "}
                         {formatPaymentStatus(payment.status)}
                       </span>
+                      <span className="text-xs text-[#6b5a4b]">
+                        {payment.breakdown
+                          .map((item) => `${item.roundName}: ${item.amount}円`)
+                          .join(" / ")}
+                      </span>
                       {payment.status === "PENDING" ? (
                         <div className="flex gap-2">
                           <button
-                            onClick={() => approvePayment(payment.id)}
-                            disabled={approvingPaymentIds[payment.id]}
+                            onClick={() => approvePayment(payment.paymentId)}
+                            disabled={approvingPaymentIds[payment.paymentId]}
                             className="rounded-full bg-[#1f1b16] px-3 py-1 text-xs font-semibold text-white transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
                           >
-                            {approvingPaymentIds[payment.id]
+                            {approvingPaymentIds[payment.paymentId]
                               ? "承認中..."
                               : "承認"}
                           </button>
                           <button
-                            onClick={() => rejectPayment(payment.id)}
-                            disabled={rejectingPaymentIds[payment.id]}
+                            onClick={() => rejectPayment(payment.paymentId)}
+                            disabled={rejectingPaymentIds[payment.paymentId]}
                             className="rounded-full border border-[#1f1b16] px-3 py-1 text-xs font-semibold text-[#1f1b16] transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
                           >
-                            {rejectingPaymentIds[payment.id]
+                            {rejectingPaymentIds[payment.paymentId]
                               ? "差し戻し中..."
                               : "差し戻し"}
                           </button>
                         </div>
                       ) : payment.status === "APPROVED" ? (
                         <button
-                          onClick={() => unapprovePayment(payment.id)}
-                          disabled={unapprovingPaymentIds[payment.id]}
+                          onClick={() => unapprovePayment(payment.paymentId)}
+                          disabled={unapprovingPaymentIds[payment.paymentId]}
                           className="rounded-full border border-[#1f1b16] px-3 py-1 text-xs font-semibold text-[#1f1b16] transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
                         >
-                          {unapprovingPaymentIds[payment.id]
+                          {unapprovingPaymentIds[payment.paymentId]
                             ? "取り消し中..."
                             : "承認を取り消す"}
                         </button>

@@ -12,6 +12,7 @@ type Adjustment = {
 type AccountingPayload = {
   totalAmount?: number;
   adjustments?: Adjustment[];
+  roundId?: string;
   ownerClientId?: string | null;
 };
 
@@ -39,7 +40,20 @@ export async function POST(request: Request, { params }: Params) {
     return NextResponse.json({ error: "Forbidden" }, { status: auth.status });
   }
 
-  if (event.accountingStatus === AccountingStatus.CONFIRMED) {
+  const roundId = body.roundId?.trim();
+  if (!roundId) {
+    return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+  }
+
+  const round = await prisma.eventRound.findFirst({
+    where: { id: roundId, eventId: event.id },
+  });
+
+  if (!round) {
+    return NextResponse.json({ error: "Invalid round" }, { status: 400 });
+  }
+
+  if (round.accountingStatus === AccountingStatus.CONFIRMED) {
     return NextResponse.json({ error: "Already confirmed" }, { status: 409 });
   }
 
@@ -48,7 +62,7 @@ export async function POST(request: Request, { params }: Params) {
   }
 
   const actualAttendances = await prisma.attendance.findMany({
-    where: { eventId: event.id, isActual: true },
+    where: { eventId: event.id, roundId: round.id, isActual: true },
   });
 
   if (actualAttendances.length === 0) {
@@ -83,24 +97,50 @@ export async function POST(request: Request, { params }: Params) {
   const perPerson =
     remainingCount > 0 ? ceilDivide(remainingTotal, remainingCount) : 0;
 
+  const rounds = await prisma.eventRound.findMany({
+    where: { eventId: event.id },
+    select: { id: true, accountingStatus: true, totalAmount: true },
+  });
+  const allConfirmed = rounds.every((item) =>
+    item.id === round.id ? true : item.accountingStatus === AccountingStatus.CONFIRMED
+  );
+  const totalSum = rounds.reduce((sum, item) => {
+    if (item.id === round.id) {
+      return sum + Math.round(body.totalAmount ?? 0);
+    }
+    return sum + (item.totalAmount ?? 0);
+  }, 0);
+
   await prisma.$transaction([
-    prisma.event.update({
-      where: { id: event.id },
+    prisma.eventRound.update({
+      where: { id: round.id },
       data: {
         totalAmount: Math.round(body.totalAmount),
         perPersonAmount: perPerson,
         accountingStatus: AccountingStatus.CONFIRMED,
       },
     }),
+    prisma.event.update({
+      where: { id: event.id },
+      data: {
+        totalAmount: allConfirmed ? totalSum : null,
+        perPersonAmount: null,
+        accountingStatus: allConfirmed
+          ? AccountingStatus.CONFIRMED
+          : AccountingStatus.PENDING,
+      },
+    }),
     ...actualAttendances.map((attendance) =>
       prisma.payment.upsert({
         where: { attendanceId: attendance.id },
         update: {
+          roundId: round.id,
           amount: adjustments.get(attendance.id) ?? perPerson,
           status: PaymentStatus.UNSUBMITTED,
         },
         create: {
           eventId: event.id,
+          roundId: round.id,
           attendanceId: attendance.id,
           amount: adjustments.get(attendance.id) ?? perPerson,
           status: PaymentStatus.UNSUBMITTED,
@@ -128,20 +168,56 @@ export async function DELETE(request: Request, { params }: Params) {
     return NextResponse.json({ error: "Forbidden" }, { status: auth.status });
   }
 
-  if (event.accountingStatus !== AccountingStatus.CONFIRMED) {
+  const roundId = body.roundId?.trim();
+  if (!roundId) {
+    return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+  }
+
+  const round = await prisma.eventRound.findFirst({
+    where: { id: roundId, eventId: event.id },
+  });
+
+  if (!round) {
+    return NextResponse.json({ error: "Invalid round" }, { status: 400 });
+  }
+
+  if (round.accountingStatus !== AccountingStatus.CONFIRMED) {
     return NextResponse.json({ error: "Not confirmed" }, { status: 409 });
   }
 
+  const rounds = await prisma.eventRound.findMany({
+    where: { eventId: event.id },
+    select: { id: true, accountingStatus: true, totalAmount: true },
+  });
+  const remainingRounds = rounds.filter((item) => item.id !== round.id);
+  const allConfirmedAfter = remainingRounds.every(
+    (item) => item.accountingStatus === AccountingStatus.CONFIRMED
+  );
+  const totalSum = remainingRounds.reduce(
+    (sum, item) => sum + (item.totalAmount ?? 0),
+    0
+  );
+
   await prisma.$transaction([
     prisma.payment.deleteMany({
-      where: { eventId: event.id },
+      where: { eventId: event.id, roundId: round.id },
     }),
-    prisma.event.update({
-      where: { id: event.id },
+    prisma.eventRound.update({
+      where: { id: round.id },
       data: {
         totalAmount: null,
         perPersonAmount: null,
         accountingStatus: AccountingStatus.PENDING,
+      },
+    }),
+    prisma.event.update({
+      where: { id: event.id },
+      data: {
+        totalAmount: allConfirmedAfter ? totalSum : null,
+        perPersonAmount: null,
+        accountingStatus: allConfirmedAfter
+          ? AccountingStatus.CONFIRMED
+          : AccountingStatus.PENDING,
       },
     }),
   ]);

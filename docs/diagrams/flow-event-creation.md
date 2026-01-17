@@ -10,6 +10,7 @@ sequenceDiagram
   A->>UI: イベント作成画面
   UI->>API: POST /api/events (name, memo, areaPrefCode, areaMunicipalityName, candidates)
   API->>DB: Event + CandidateDate 作成
+  API->>DB: EventRound 作成（1次会）
   DB-->>API: 作成結果
   API-->>UI: publicId 返却
   UI-->>A: 参加者URLへ遷移

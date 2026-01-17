@@ -12,9 +12,16 @@
   - 予約情報（`shopSchedule`, `shopName`, `shopUrl`, `courseName`, `courseUrl`, `shopAddress`, `shopPrice`）を含む
   - エリア情報（`areaPrefCode`, `areaMunicipalityName`）を含む
   - 幹事の `ownerPaypayId` を含む
+  - 回情報（`rounds`）を含む
 - `PATCH /api/events/{publicId}` イベント情報更新（幹事のみ）
   - 予約情報フィールド（`shopSchedule`, `shopName`, `shopUrl`, `courseName`, `courseUrl`, `shopAddress`, `shopPrice`）を含む
 - `DELETE /api/events/{publicId}` イベント削除（幹事のみ）
+
+## 回（2次会以降）
+- `POST /api/events/{publicId}/rounds` 回の追加（幹事のみ）
+  - 連番の `order` と `name` を自動付与
+- `DELETE /api/events/{publicId}/rounds/{roundId}` 回の削除（幹事のみ）
+  - 2次会以降のみ削除可能、出席/支払も削除される
 
 ## 日程候補
 - `PUT /api/events/{publicId}/candidates` 候補日保存（幹事のみ）
@@ -40,14 +47,19 @@
 
 ## 出席管理
 - `POST /api/events/{publicId}/attendance` 出席更新/追加（幹事のみ）
+  - `roundId` を必須（追加時）
 
 ## 会計
 - `POST /api/events/{publicId}/accounting` 会計確定（幹事のみ）
+  - `roundId` を必須（回ごとに確定）
 - `DELETE /api/events/{publicId}/accounting` 会計確定の取り消し（幹事のみ）
+  - `roundId` を必須（回ごとに取り消し）
 
 ## 支払
-- `POST /api/events/{publicId}/payments/apply` 支払申請
-- `POST /api/events/{publicId}/payments/cancel` 支払申請の取消
+- `POST /api/events/{publicId}/payments/apply` 支払申請（全回合計）
+  - `attendeeName` または `attendanceId` を指定
+- `POST /api/events/{publicId}/payments/cancel` 支払申請の取消（全回合計）
+  - `attendeeName` または `attendanceId` を指定
 - `POST /api/events/{publicId}/payments/{paymentId}/approve` 支払承認（幹事のみ）
 - `POST /api/events/{publicId}/payments/{paymentId}/reject` 支払差し戻し（幹事のみ）
 - `POST /api/events/{publicId}/payments/{paymentId}/unapprove` 承認取消（幹事のみ）

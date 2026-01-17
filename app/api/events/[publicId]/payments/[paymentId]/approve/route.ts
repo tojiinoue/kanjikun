@@ -34,17 +34,42 @@ export async function POST(request: Request, { params }: Params) {
     return NextResponse.json({ error: "Payment missing" }, { status: 404 });
   }
 
-  if (payment.status !== PaymentStatus.PENDING) {
-    return NextResponse.json({ error: "Not pending" }, { status: 409 });
+  const attendance = await prisma.attendance.findFirst({
+    where: { id: payment.attendanceId, eventId: event.id },
+    select: { name: true },
+  });
+
+  if (!attendance) {
+    return NextResponse.json({ error: "Payment missing" }, { status: 404 });
   }
 
-  const updated = await prisma.payment.update({
-    where: { id: payment.id },
-    data: {
-      status: PaymentStatus.APPROVED,
-      approvedAt: new Date(),
+  const attendances = await prisma.attendance.findMany({
+    where: { eventId: event.id, name: attendance.name },
+    select: { id: true },
+  });
+
+  const payments = await prisma.payment.findMany({
+    where: {
+      eventId: event.id,
+      attendanceId: { in: attendances.map((item) => item.id) },
     },
   });
 
-  return NextResponse.json({ payment: updated });
+  if (payments.some((item) => item.status !== PaymentStatus.PENDING)) {
+    return NextResponse.json({ error: "Not pending" }, { status: 409 });
+  }
+
+  const updated = await prisma.$transaction(
+    payments.map((item) =>
+      prisma.payment.update({
+        where: { id: item.id },
+        data: {
+          status: PaymentStatus.APPROVED,
+          approvedAt: new Date(),
+        },
+      })
+    )
+  );
+
+  return NextResponse.json({ payments: updated });
 }
