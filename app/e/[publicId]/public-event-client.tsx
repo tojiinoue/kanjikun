@@ -655,7 +655,8 @@ export default function PublicEventClient({ publicId }: Props) {
           </div>
         </header>
 
-        {event.scheduleStatus === "CONFIRMED" ? (
+        {event.scheduleStatus === "CONFIRMED" &&
+        event.accountingStatus === "CONFIRMED" ? (
           <section className="rounded-3xl border border-[#e6d6c9] bg-white/80 p-6 sm:p-8">
             <h2 className="text-lg font-semibold">出席一覧</h2>
             <div className="mt-4 space-y-4 text-sm">
